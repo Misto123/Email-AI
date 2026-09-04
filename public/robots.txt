@@ -1,0 +1,10 @@
+# robots.txt for DICloak Coupon Code
+User-agent: *
+Allow: /
+Disallow: /settings
+
+# Sitemap
+Sitemap: https://dicloakcouponcode.com/sitemap.xml
+
+# Crawl rate
+Crawl-delay: 1

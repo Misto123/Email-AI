@@ -1,0 +1,159 @@
+{
+  "routes": {
+    "blog-generation": {
+      "model": "anthropic/claude-3.5-sonnet",
+      "provider": "openrouter",
+      "reason": "High quality content creation requires advanced reasoning and creativity",
+      "fallback": "anthropic/claude-3-sonnet",
+      "maxTokens": 4000,
+      "temperature": 0.7
+    },
+    "seo-meta": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "Simple structured output, cost-optimized with Luna at 50% off",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 200,
+      "temperature": 0.3
+    },
+    "comment-moderation": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "Binary classification task, perfect for fast Luna model",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 100,
+      "temperature": 0.1
+    },
+    "code-generation": {
+      "model": "anthropic/claude-3.5-sonnet",
+      "provider": "openrouter",
+      "reason": "Complex code generation requires Claude's reasoning capabilities",
+      "fallback": "openai/gpt-4",
+      "maxTokens": 3000,
+      "temperature": 0.2
+    },
+    "data-extraction": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "Structured data extraction is simple, use cost-efficient Luna",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 1000,
+      "temperature": 0.1
+    },
+    "simple-classification": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "Classification tasks are ideal for Luna's fast, cheap processing",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 50,
+      "temperature": 0.0
+    },
+    "complex-analysis": {
+      "model": "anthropic/claude-3.5-sonnet",
+      "provider": "openrouter",
+      "reason": "Deep analysis requires Claude's advanced reasoning",
+      "fallback": "openai/gpt-4",
+      "maxTokens": 3000,
+      "temperature": 0.5
+    },
+    "creative-writing": {
+      "model": "anthropic/claude-3.5-sonnet",
+      "provider": "openrouter",
+      "reason": "Creative content benefits from Claude's natural language abilities",
+      "fallback": "openai/gpt-4",
+      "maxTokens": 4000,
+      "temperature": 0.8
+    },
+    "ui-design": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "GPT-5.6 Luna excels at design tasks - modern UI/UX generation",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 3000,
+      "temperature": 0.7
+    },
+    "design-system": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "GPT-5.6 Luna provides exceptional design system creation and consistency",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 3000,
+      "temperature": 0.6
+    },
+    "component-design": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "GPT-5.6 Luna creates beautiful, production-ready React components",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 2500,
+      "temperature": 0.7
+    },
+    "layout-design": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "GPT-5.6 Luna excels at modern, responsive layout design",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 3000,
+      "temperature": 0.7
+    },
+    "css-styling": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "GPT-5.6 Luna provides modern CSS with Tailwind, animations, and responsive design",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 2000,
+      "temperature": 0.6
+    },
+    "default": {
+      "model": "openai/gpt-5.6-luna",
+      "provider": "openrouter",
+      "reason": "GPT-5.6 Luna as default for cost-effective, high-quality responses",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "maxTokens": 2000,
+      "temperature": 0.7
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Smart routing configuration for cost optimization",
+    "updated": "2026-08-07",
+    "costSavings": "Up to 94% on simple tasks by using GPT-5.6 Luna"
+  },
+  "strategies": {
+    "cost-optimized": {
+      "description": "Maximize cost savings by using Luna for all simple tasks",
+      "priority": "cost"
+    },
+    "quality-first": {
+      "description": "Use Claude for everything to ensure highest quality",
+      "priority": "quality"
+    },
+    "balanced": {
+      "description": "Smart routing based on task complexity",
+      "priority": "balanced"
+    }
+  },
+  "pricing": {
+    "openai/gpt-5.6-luna": {
+      "input": 0.05,
+      "output": 0.30,
+      "discount": 0.50,
+      "note": "50% off promotion"
+    },
+    "anthropic/claude-3.5-sonnet": {
+      "input": 3.00,
+      "output": 15.00,
+      "discount": 0.00
+    },
+    "anthropic/claude-3-sonnet": {
+      "input": 3.00,
+      "output": 15.00,
+      "discount": 0.00
+    },
+    "openai/gpt-4": {
+      "input": 30.00,
+      "output": 60.00,
+      "discount": 0.00
+    }
+  }
+}
