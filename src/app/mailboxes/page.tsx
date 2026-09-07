@@ -13,11 +13,27 @@ export default function MailboxesPage() {
   const [ai, setAi] = useState(true);
   const [message, setMessage] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = () =>
-    fetch("/api/mailboxes")
-      .then((response) => response.json())
-      .then(setItems);
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch("/api/mailboxes");
+      if (!response.ok) {
+        throw new Error(`Failed to load mailboxes: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setItems(data);
+    } catch (err) {
+      console.error("Error loading mailboxes:", err);
+      setError(err instanceof Error ? err.message : "Failed to load mailboxes. Please run the Supabase migration first.");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     void load();
@@ -226,7 +242,31 @@ export default function MailboxesPage() {
           </div>
 
           <div className="mailbox-list">
-            {items.length === 0 && (
+            {loading && (
+              <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
+                <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>⏳</p>
+                <p>Loading mailboxes...</p>
+              </div>
+            )}
+
+            {error && !loading && (
+              <div style={{ padding: "2rem", textAlign: "center", background: "#fef2f2", borderRadius: "0.5rem", border: "2px solid #dc2626" }}>
+                <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>⚠️</p>
+                <p style={{ color: "#991b1b", fontWeight: "bold", marginBottom: "0.5rem" }}>Database Error</p>
+                <p style={{ color: "#991b1b", fontSize: "0.9rem", marginBottom: "1rem" }}>{error}</p>
+                <div style={{ background: "#fee2e2", padding: "1rem", borderRadius: "0.5rem", textAlign: "left", fontSize: "0.9rem" }}>
+                  <p style={{ fontWeight: "bold", marginBottom: "0.5rem", color: "#991b1b" }}>To fix this:</p>
+                  <ol style={{ marginLeft: "1.5rem", color: "#7f1d1d" }}>
+                    <li>Go to <a href="https://supabase.com/dashboard/project/xecxfqdhqjiwngblekgf/sql/new" target="_blank" rel="noopener noreferrer" style={{ color: "#dc2626", textDecoration: "underline" }}>Supabase SQL Editor</a></li>
+                    <li>Copy the SQL from <code style={{ background: "#fff", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>/supabase/migrations/001_email_drafts.sql</code></li>
+                    <li>Paste and click "Run"</li>
+                    <li>Reload this page</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {!loading && !error && items.length === 0 && (
               <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
                 <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>📭</p>
                 <p>No mailboxes configured yet.</p>
