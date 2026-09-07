@@ -103,3 +103,93 @@ Tables to create:
 - Create dedicated Vercel project
 - Never deploy multiple applications to same Vercel project
 - Store project-specific memory in MEMORY.md or memory.md
+
+---
+
+## Enhancement Plan (Added 2026-09-04 Evening)
+
+### Completed Improvements
+✅ **Mailbox Page Enhanced**
+- Added collapsible instruction panel with step-by-step guide
+- Included IMAP/SMTP server details (imap.purelymail.com:993, smtp.purelymail.com:465)
+- Added security notes about encryption
+- Improved UI with icons and better messaging
+- Added empty state for when no mailboxes exist
+
+✅ **404 Page Created**
+- Custom 404 page with branding
+- Quick navigation back to home/mailboxes
+- Fixes the "404 after 30 seconds" issue
+
+### Planned Enhancements (Future Phases)
+
+#### Main Goal: Context-Aware AI Replies
+The core enhancement is to make AI replies based on uploaded context:
+1. Knowledge base documents (company info, policies, FAQs)
+2. Website content (product details, pricing, features)
+3. Past email conversations (for tone and style reference)
+
+#### New Features to Build
+
+**1. Knowledge Base Module** (`/knowledge-base`)
+- Upload PDF, TXT, MD, DOCX files
+- Store in Supabase with pgvector embeddings
+- Associate KB with specific mailboxes or global
+- RAG (Retrieval Augmented Generation) for AI context
+
+**2. Website Content Module** (`/website-content`)
+- Upload website pages, product info, pricing
+- URL scraping capability
+- Vector embeddings for semantic search
+- Mailbox-specific or global content
+
+**3. Email History Module** (`/email-history`)
+- Upload .mbox, .eml files or raw logs
+- Parse and index past conversations
+- Learn tone, style, and response patterns
+- Reference for AI draft generation
+
+#### Database Schema Extensions
+New tables needed:
+- `knowledge_base` (title, content, embedding vector(1536), metadata)
+- `website_content` (url, title, content, embedding, metadata)
+- `email_history` (from, to, subject, body, embedding, metadata)
+
+All with pgvector extension for semantic search.
+
+#### Technical Approach
+- Use OpenRouter for embeddings (cheaper than OpenAI)
+- Supabase pgvector for vector storage
+- RAG pattern: retrieve relevant context → inject into AI prompt
+- File parsing: pdf-parse, mammoth (DOCX), cheerio (HTML)
+
+#### Implementation Priority
+1. ✅ Fix current issues (mailbox instructions, 404 page)
+2. Next: Add pgvector to Supabase
+3. Build Knowledge Base module
+4. Build Website Content module
+5. Build Email History module
+6. Integrate RAG into AI draft generation
+
+See `ENHANCEMENT_PLAN.md` for detailed implementation roadmap.
+
+---
+
+## Deployment Checklist
+
+### Before Deploying
+- [ ] Run Supabase migration (001_email_drafts.sql)
+- [ ] Verify all environment variables on Vercel
+- [ ] Test mailbox CRUD operations
+- [ ] Test IMAP/SMTP connections
+- [ ] Test AI draft generation
+- [ ] Test email sending
+
+### After Deploying Enhancements
+- [ ] Enable pgvector extension in Supabase
+- [ ] Run new migrations for KB/website/history tables
+- [ ] Test file uploads
+- [ ] Test embedding generation
+- [ ] Test RAG context retrieval
+- [ ] Verify AI quality improves with context
+
