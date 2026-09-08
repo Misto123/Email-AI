@@ -193,3 +193,47 @@ See `ENHANCEMENT_PLAN.md` for detailed implementation roadmap.
 - [ ] Test RAG context retrieval
 - [ ] Verify AI quality improves with context
 
+
+---
+
+## Supabase CLI Access (Automated)
+
+### Status: ✅ CONFIGURED & WORKING
+
+### Login Token
+Stored via: `supabase login --token <SUPABASE_PAT>`  # token kept local only, never commit
+
+### Project Link
+- Project ref: `xecxfqdhqjiwngblekgf`
+- Linked via: `supabase link --project-ref xecxfqdhqjiwngblekgf` (run from /Email-AI dir)
+
+### How to Use (Future Sessions)
+
+```bash
+# 1. Login (only needed once per machine, token is stored)
+supabase login --token <YOUR_SUPABASE_PAT>  # Never commit this token!
+
+# 2. Link project (run from Email-AI directory)
+cd /Users/northsea/ClaudeProjects/Email-AI
+supabase link --project-ref xecxfqdhqjiwngblekgf
+
+# 3. Run a SQL query
+supabase db query "SELECT * FROM mailboxes;" --linked
+
+# 4. Push new migrations
+supabase db push
+
+# 5. Run arbitrary SQL
+supabase db query "INSERT INTO ..." --linked
+```
+
+### Migration Status
+- ✅ 001_email_drafts.sql — applied 2026-09-04
+  - Tables: mailboxes, emails, drafts, settings
+  - Extensions: pgcrypto
+  - RLS: enabled on all tables
+
+### Adding Future Migrations
+1. Create file: `supabase/migrations/002_name.sql`
+2. Run: `supabase db push`
+3. Done — no manual SQL copy/paste needed!
