@@ -79,6 +79,28 @@ export function MailApp() {
     }
   };
 
+  const deleteSpam = async (emailId: string, draftId: string) => {
+    if (!window.confirm("Delete this spam email from inbox and database?")) return;
+    try {
+      const response = await fetch(`/api/emails/${emailId}/delete-spam`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error();
+      setDrafts((items) => items.filter((item) => item.id !== draftId));
+      setMessage("✅ Spam deleted from inbox!");
+    } catch {
+      setMessage("❌ Unable to delete spam");
+    }
+  };
+
+  const getSpamLabel = (score: number) => {
+    if (score >= 80) return { emoji: "🚫", text: "Very High Spam", color: "#dc2626" };
+    if (score >= 60) return { emoji: "⚠️", text: "High Spam", color: "#ea580c" };
+    if (score >= 40) return { emoji: "⚡", text: "Possible Spam", color: "#f59e0b" };
+    if (score >= 20) return { emoji: "⚪", text: "Low Spam", color: "#84cc16" };
+    return { emoji: "✅", text: "Legitimate", color: "#10b981" };
+  };
+
   return (
     <main className="mail-shell">
       <header className="topbar">
@@ -265,12 +287,32 @@ export function MailApp() {
 
         {!loading && !error && drafts.length > 0 && (
           <div className="draft-list">
-            {drafts.map((draft) => (
-              <article className="draft-card" key={draft.id}>
+            {drafts.map((draft) => {
+              const spamScore = draft.emails.spam_score || 0;
+              const spamLabel = getSpamLabel(spamScore);
+              const isHighSpam = spamScore >= 60;
+              
+              return (
+              <article className="draft-card" key={draft.id} style={isHighSpam ? { borderLeft: "4px solid #dc2626", background: "#fef2f2" } : {}}>
                 <div className="draft-meta">
                   <span>📧 {draft.emails.mailboxes.email}</span>
                   <time>{formatDate(draft.emails.received_at)}</time>
                 </div>
+                
+                {/* Spam Score Badge */}
+                <div style={{ 
+                  display: "inline-block", 
+                  padding: "0.25rem 0.75rem", 
+                  borderRadius: "1rem", 
+                  fontSize: "0.85rem",
+                  fontWeight: "600",
+                  background: spamScore >= 60 ? "#fee2e2" : spamScore >= 40 ? "#fef3c7" : "#f0fdf4",
+                  color: spamLabel.color,
+                  marginBottom: "0.5rem"
+                }}>
+                  {spamLabel.emoji} Spam Score: {spamScore}/100 - {spamLabel.text}
+                </div>
+
                 <h2>{draft.emails.subject || "(No subject)"}</h2>
                 <p className="sender">
                   {draft.emails.from_name || draft.emails.from_email || "Unknown sender"}{" "}
@@ -304,15 +346,25 @@ export function MailApp() {
                   >
                     📤 Send
                   </button>
+                  {isHighSpam && (
+                    <button
+                      className="button danger"
+                      onClick={() => void deleteSpam(draft.emails.id, draft.id)}
+                      style={{ background: "#dc2626" }}
+                    >
+                      🚫 Delete Spam
+                    </button>
+                  )}
                   <button
                     className="button danger"
                     onClick={() => void remove(draft.id)}
                   >
-                    🗑️ Delete
+                    🗑️ Delete Draft
                   </button>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

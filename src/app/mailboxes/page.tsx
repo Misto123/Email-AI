@@ -11,6 +11,7 @@ export default function MailboxesPage() {
   const [password, setPassword] = useState("");
   const [prompt, setPrompt] = useState("");
   const [ai, setAi] = useState(true);
+  const [language, setLanguage] = useState("en");
   const [message, setMessage] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,10 +46,11 @@ export default function MailboxesPage() {
     setPassword("");
     setPrompt("");
     setAi(true);
+    setLanguage("en");
   };
 
   const save = async () => {
-    const payload = { email, password, prompt, ai_enabled: ai };
+    const payload = { email, password, prompt, ai_enabled: ai, reply_language: language };
     const url = editing ? `/api/mailboxes/${editing}` : "/api/mailboxes";
     const response = await fetch(url, {
       method: editing ? "PATCH" : "POST",
@@ -70,6 +72,7 @@ export default function MailboxesPage() {
     setEmail(mailbox.email);
     setPrompt(mailbox.prompt || "");
     setAi(mailbox.ai_enabled);
+    setLanguage(mailbox.reply_language || "en");
     setPassword("");
   };
 
@@ -201,6 +204,31 @@ export default function MailboxesPage() {
               />{" "}
               AI drafting enabled
             </label>
+
+            <label htmlFor="language">
+              Reply Language{" "}
+              <small style={{ color: "#6b7280" }}>(AI will respond in this language)</small>
+            </label>
+            <select
+              id="language"
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+              style={{ padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #d1d5db" }}
+            >
+              <option value="en">English</option>
+              <option value="es">Spanish (Español)</option>
+              <option value="fr">French (Français)</option>
+              <option value="de">German (Deutsch)</option>
+              <option value="it">Italian (Italiano)</option>
+              <option value="pt">Portuguese (Português)</option>
+              <option value="nl">Dutch (Nederlands)</option>
+              <option value="pl">Polish (Polski)</option>
+              <option value="ru">Russian (Русский)</option>
+              <option value="zh">Chinese (中文)</option>
+              <option value="ja">Japanese (日本語)</option>
+              <option value="ko">Korean (한국어)</option>
+              <option value="ar">Arabic (العربية)</option>
+            </select>
 
             <label htmlFor="prompt">
               AI instructions{" "}

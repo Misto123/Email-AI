@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createImapClient } from "@/lib/mail";
 import { generateReply } from "@/lib/email-ai";
 import { supabaseAdmin } from "@/lib/supabase";
+import { calculateSpamScore, decodeEmailBody } from "@/lib/spam-detection";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -12,7 +13,18 @@ function textFromSource(source: Buffer) {
   const header = split >= 0 ? raw.slice(0, split) : raw;
   const body = split >= 0 ? raw.slice(split).replace(/^\r?\n\r?\n/, "") : "";
   const get = (name: string) => header.match(new RegExp(`^${name}:\\s*(.*)$`, "im"))?.[1]?.trim() || null;
-  return { messageId: get("Message-ID") || `source-${Buffer.from(raw).toString("base64url").slice(0, 40)}`, subject: get("Subject"), from: get("From"), body };
+  
+  // Decode email body
+  const decodedBody = decodeEmailBody(body);
+  
+  return { 
+    messageId: get("Message-ID") || `source-${Buffer.from(raw).toString("base64url").slice(0, 40)}`, 
+    subject: get("Subject"), 
+    from: get("From"), 
+    body: decodedBody,
+    inReplyTo: get("In-Reply-To"),
+    references: get("References")
+  };
 }
 
 function parseFrom(value: string | null) {
@@ -22,7 +34,7 @@ function parseFrom(value: string | null) {
 
 export async function GET(request: Request) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
+  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,reply_language");
   if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
@@ -39,10 +51,35 @@ export async function GET(request: Request) {
           if (existing) continue;
           const sender = parseFrom(parsed.from);
           const receivedAt = message.internalDate instanceof Date ? message.internalDate.toISOString() : message.internalDate || new Date().toISOString();
-          const { data: saved, error: saveError } = await supabaseAdmin.from("emails").insert({ mailbox_id: mailbox.id, message_id: parsed.messageId, thread_id: parsed.messageId, from_email: sender.email, from_name: sender.name, subject: parsed.subject, body: parsed.body, received_at: receivedAt, processed: mailbox.ai_enabled }).select("id,from_email,from_name,subject,body").single();
+          
+          // Calculate spam score
+          const spamScore = calculateSpamScore({
+            from_email: sender.email,
+            from_name: sender.name,
+            subject: parsed.subject,
+            body: parsed.body
+          });
+          
+          const { data: saved, error: saveError } = await supabaseAdmin.from("emails").insert({ 
+            mailbox_id: mailbox.id, 
+            message_id: parsed.messageId, 
+            thread_id: parsed.inReplyTo || parsed.messageId, 
+            from_email: sender.email, 
+            from_name: sender.name, 
+            subject: parsed.subject, 
+            body: parsed.body, 
+            received_at: receivedAt, 
+            processed: mailbox.ai_enabled,
+            spam_score: spamScore,
+            in_reply_to: parsed.inReplyTo,
+            references: parsed.references
+          }).select("id,from_email,from_name,subject,body,spam_score").single();
+          
           if (saveError || !saved) throw saveError || new Error("Could not save email");
-          if (mailbox.ai_enabled) {
-            const draft = await generateReply(saved, mailbox.prompt);
+          
+          // Only generate AI drafts for non-spam emails (score < 70)
+          if (mailbox.ai_enabled && spamScore < 70) {
+            const draft = await generateReply(saved, mailbox.prompt, mailbox.reply_language || "en");
             await supabaseAdmin.from("drafts").insert({ email_id: saved.id, mailbox_id: mailbox.id, draft_body: draft });
           }
           imported += 1;
