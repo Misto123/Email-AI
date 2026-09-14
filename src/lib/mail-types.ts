@@ -3,7 +3,7 @@ export interface Mailbox {
   email: string;
   ai_enabled: boolean;
   prompt: string | null;
-  reply_language: string;
+  reply_language?: string;
   created_at: string;
 }
 
@@ -17,9 +17,9 @@ export interface EmailRecord {
   subject: string | null;
   body: string | null;
   received_at: string | null;
-  spam_score: number;
-  in_reply_to: string | null;
-  references: string | null;
+  spam_score?: number;
+  in_reply_to?: string | null;
+  references?: string | null;
 }
 
 export interface Draft {
@@ -30,6 +30,6 @@ export interface Draft {
   status: "draft" | "sent" | "deleted";
   created_at: string;
   updated_at: string;
-  sent_at: string | null;
+  sent_at?: string | null;
   emails: EmailRecord & { mailboxes: Pick<Mailbox, "email"> };
 }

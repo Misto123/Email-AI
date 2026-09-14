@@ -34,7 +34,7 @@ function parseFrom(value: string | null) {
 
 export async function GET(request: Request) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,reply_language");
+  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
   if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
@@ -69,17 +69,14 @@ export async function GET(request: Request) {
             subject: parsed.subject, 
             body: parsed.body, 
             received_at: receivedAt, 
-            processed: mailbox.ai_enabled,
-            spam_score: spamScore,
-            in_reply_to: parsed.inReplyTo,
-            references: parsed.references
-          }).select("id,from_email,from_name,subject,body,spam_score").single();
+            processed: mailbox.ai_enabled
+          }).select("id,from_email,from_name,subject,body").single();
           
           if (saveError || !saved) throw saveError || new Error("Could not save email");
           
           // Only generate AI drafts for non-spam emails (score < 70)
           if (mailbox.ai_enabled && spamScore < 70) {
-            const draft = await generateReply(saved, mailbox.prompt, mailbox.reply_language || "en");
+            const draft = await generateReply(saved, mailbox.prompt, "en");
             await supabaseAdmin.from("drafts").insert({ email_id: saved.id, mailbox_id: mailbox.id, draft_body: draft });
           }
           imported += 1;
