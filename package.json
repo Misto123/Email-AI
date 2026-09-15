@@ -13,6 +13,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
+    "migrate": "node scripts/run-migrations.mjs",
     "cloudflare:build": "opennextjs-cloudflare build",
     "cloudflare:dev": "opennextjs-cloudflare build && wrangler dev",
     "cloudflare:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
