@@ -53,3 +53,16 @@ export interface Draft {
   sent_at?: string | null;
   emails: EmailRecord & { mailboxes: Pick<Mailbox, "email"> };
 }
+
+export interface PendingEmail {
+  id: string;
+  mailbox_id: string;
+  from_email: string | null;
+  from_name: string | null;
+  subject: string | null;
+  body: string | null;
+  received_at: string | null;
+  spam_score?: number;
+  mailboxes: Pick<Mailbox, "email">;
+}
+

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Draft } from "@/lib/mail-types";
+import type { Draft, PendingEmail } from "@/lib/mail-types";
 import { StickyNotification } from "./sticky-notification";
 
 const formatDate = (value: string | null) =>
@@ -15,6 +15,8 @@ const formatDate = (value: string | null) =>
 
 export function MailApp() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [pendingEmails, setPendingEmails] = useState<PendingEmail[]>([]);
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "info" | "warning">("info");
   const [loading, setLoading] = useState(true);
@@ -30,15 +32,23 @@ export function MailApp() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/drafts");
-      if (!response.ok) {
-        throw new Error(`Failed to load drafts: ${response.statusText}`);
+      
+      // Load drafts
+      const draftsResponse = await fetch("/api/drafts");
+      if (!draftsResponse.ok) {
+        throw new Error(`Failed to load drafts: ${draftsResponse.statusText}`);
       }
-      const data = await response.json();
-      setDrafts(data);
+      const draftsData = await draftsResponse.json();
+      setDrafts(draftsData);
+      
+      // Load pending emails (no drafts yet)
+      const pendingResponse = await fetch("/api/emails/pending");
+      if (pendingResponse.ok) {
+        const pendingData = await pendingResponse.json();
+        setPendingEmails(pendingData);
+      }
       
       // Load spam count
-      // TODO: Create spam folder endpoint
       setSpamCount(0);
     } catch (err) {
       console.error("Error loading drafts:", err);
@@ -48,6 +58,7 @@ export function MailApp() {
           : "Unable to load drafts. Please ensure the database is set up correctly."
       );
       setDrafts([]);
+      setPendingEmails([]);
     } finally {
       setLoading(false);
     }
@@ -134,7 +145,12 @@ export function MailApp() {
         const data = await response.json();
         throw new Error(data.error || "Failed to mark as spam");
       }
-      setDrafts((items) => items.filter((item) => item.id !== draftId));
+      // Remove from drafts if it has a draft
+      if (draftId) {
+        setDrafts((items) => items.filter((item) => item.id !== draftId));
+      }
+      // Remove from pending emails
+      setPendingEmails((items) => items.filter((item) => item.id !== emailId));
       showNotification("Marked as spam! System is learning...", "success");
     } catch (err) {
       showNotification(err instanceof Error ? err.message : "Unable to mark as spam. Migration may be required.", "error");
@@ -154,6 +170,30 @@ export function MailApp() {
       showNotification("Email archived", "success");
     } catch (err) {
       showNotification(err instanceof Error ? err.message : "Unable to archive", "error");
+    }
+  };
+
+  const generateReply = async (emailId: string) => {
+    try {
+      setGeneratingFor(emailId);
+      showNotification("Generating AI reply...", "info");
+      
+      const response = await fetch(`/api/emails/${emailId}/generate-reply`, {
+        method: "POST",
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to generate reply");
+      }
+      
+      showNotification("AI reply generated successfully!", "success");
+      // Reload to show the new draft
+      void load();
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : "Unable to generate reply", "error");
+    } finally {
+      setGeneratingFor(null);
     }
   };
 
@@ -191,12 +231,14 @@ export function MailApp() {
         <div className="page-heading">
           <div>
             <p className="eyebrow">Human approval queue</p>
-            <h1>AI drafts</h1>
+            <h1>Email Inbox</h1>
             <p className="lede">
-              Review every suggested reply before it leaves your inbox.
+              Generate AI replies on-demand, review every reply before sending.
             </p>
           </div>
-          <span className="count">{drafts.length} open</span>
+          <span className="count">
+            {drafts.length} drafts · {pendingEmails.length} pending
+          </span>
         </div>
 
         {loading && (
@@ -314,9 +356,9 @@ export function MailApp() {
           </div>
         )}
 
-        {!loading && !error && drafts.length === 0 && (
+        {!loading && !error && drafts.length === 0 && pendingEmails.length === 0 && (
           <div className="empty">
-            <strong>📭 No drafts yet</strong>
+            <strong>📭 No emails yet</strong>
             <span>
               New messages will appear here after the next daily check at
               midnight.
@@ -340,8 +382,87 @@ export function MailApp() {
           </div>
         )}
 
+        {!loading && !error && pendingEmails.length > 0 && (
+          <>
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem", color: "#374151" }}>
+              📬 Pending Emails ({pendingEmails.length})
+            </h2>
+            <div className="draft-list">
+              {pendingEmails.map((email) => {
+                const spamScore = email.spam_score || 0;
+                const spamLabel = getSpamLabel(spamScore);
+                const isHighSpam = spamScore >= 60;
+                const isGenerating = generatingFor === email.id;
+                
+                return (
+                  <article 
+                    className="draft-card" 
+                    key={email.id} 
+                    style={isHighSpam ? { borderLeft: "4px solid #f59e0b", background: "#fffbeb" } : { borderLeft: "4px solid #d1d5db" }}
+                  >
+                    <div className="draft-meta">
+                      <span>📧 {email.mailboxes.email}</span>
+                      <time>{formatDate(email.received_at)}</time>
+                    </div>
+                    
+                    {/* Spam Score Badge */}
+                    <div style={{ 
+                      display: "inline-block", 
+                      padding: "0.25rem 0.75rem", 
+                      borderRadius: "1rem", 
+                      fontSize: "0.85rem",
+                      fontWeight: "600",
+                      background: spamScore >= 60 ? "#fee2e2" : spamScore >= 40 ? "#fef3c7" : "#f0fdf4",
+                      color: spamLabel.color,
+                      marginBottom: "0.5rem"
+                    }}>
+                      {spamLabel.emoji} Spam Score: {spamScore}/100 - {spamLabel.text}
+                    </div>
+
+                    <h2>{email.subject || "(No subject)"}</h2>
+                    <p className="sender">
+                      {email.from_name || email.from_email || "Unknown sender"}{" "}
+                      <span>{email.from_email}</span>
+                    </p>
+                    <p className="original">
+                      {email.body?.slice(0, 220)}
+                      {(email.body?.length || 0) > 220 ? "..." : ""}
+                    </p>
+                    
+                    <div className="actions" style={{ marginTop: "1rem" }}>
+                      <button
+                        className="button primary"
+                        onClick={() => void generateReply(email.id)}
+                        disabled={isGenerating}
+                        style={{ 
+                          background: isGenerating ? "#9ca3af" : "#10b981",
+                          cursor: isGenerating ? "not-allowed" : "pointer"
+                        }}
+                      >
+                        {isGenerating ? "⏳ Generating..." : "✨ Generate AI Reply"}
+                      </button>
+                      <button
+                        className="button"
+                        onClick={() => void markAsSpam(email.id, "")}
+                        style={{ background: "#f59e0b", color: "white" }}
+                        disabled={isGenerating}
+                      >
+                        🚩 Mark as Spam
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {!loading && !error && drafts.length > 0 && (
-          <div className="draft-list">
+          <>
+            <h2 style={{ fontSize: "1.25rem", marginTop: "2rem", marginBottom: "1rem", color: "#374151" }}>
+              📝 AI Drafts ({drafts.length})
+            </h2>
+            <div className="draft-list">
             {drafts.map((draft) => {
               const spamScore = draft.emails.spam_score || 0;
               const spamLabel = getSpamLabel(spamScore);
@@ -459,6 +580,7 @@ export function MailApp() {
               );
             })}
           </div>
+          </>
         )}
       </section>
       <StickyNotification 
