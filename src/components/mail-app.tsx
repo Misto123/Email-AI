@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { Draft } from "@/lib/mail-types";
+import { StickyNotification } from "./sticky-notification";
 
 const formatDate = (value: string | null) =>
   value
@@ -15,9 +16,15 @@ const formatDate = (value: string | null) =>
 export function MailApp() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "info" | "warning">("info");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spamCount, setSpamCount] = useState(0);
+
+  const showNotification = (msg: string, type: "success" | "error" | "info" | "warning" = "info") => {
+    setMessage(msg);
+    setMessageType(type);
+  };
 
   const load = async () => {
     try {
@@ -56,7 +63,10 @@ export function MailApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!response.ok) throw new Error();
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to update");
+    }
   };
 
   const send = async (draft: Draft) => {
@@ -66,11 +76,14 @@ export function MailApp() {
       const response = await fetch(`/api/drafts/${draft.id}/send`, {
         method: "POST",
       });
-      if (!response.ok) throw new Error();
-      setMessage("✅ Reply sent successfully!");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to send");
+      }
+      showNotification("Reply sent successfully!", "success");
       void load();
-    } catch {
-      setMessage("❌ Unable to send reply.");
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : "Unable to send reply", "error");
     }
   };
 
@@ -78,9 +91,9 @@ export function MailApp() {
     try {
       await update(id, { status: "deleted" });
       setDrafts((items) => items.filter((item) => item.id !== id));
-      setMessage("✅ Draft deleted");
+      showNotification("Draft deleted", "success");
     } catch {
-      setMessage("❌ Unable to delete draft");
+      showNotification("Unable to delete draft", "error");
     }
   };
 
@@ -90,11 +103,14 @@ export function MailApp() {
       const response = await fetch(`/api/emails/${emailId}/delete-spam`, {
         method: "POST",
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete");
+      }
       setDrafts((items) => items.filter((item) => item.id !== draftId));
-      setMessage("✅ Spam deleted from inbox!");
-    } catch {
-      setMessage("❌ Unable to delete spam");
+      showNotification("Spam deleted from inbox!", "success");
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : "Unable to delete spam", "error");
     }
   };
 
@@ -114,11 +130,14 @@ export function MailApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_spam: true }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to mark as spam");
+      }
       setDrafts((items) => items.filter((item) => item.id !== draftId));
-      setMessage("✅ Marked as spam! System is learning...");
-    } catch {
-      setMessage("❌ Unable to mark as spam");
+      showNotification("Marked as spam! System is learning...", "success");
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : "Unable to mark as spam. Migration may be required.", "error");
     }
   };
 
@@ -127,11 +146,14 @@ export function MailApp() {
       const response = await fetch(`/api/emails/${emailId}/archive`, {
         method: "POST",
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to archive");
+      }
       setDrafts((items) => items.filter((item) => item.id !== draftId));
-      setMessage("✅ Email archived");
-    } catch {
-      setMessage("❌ Unable to archive");
+      showNotification("Email archived", "success");
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : "Unable to archive", "error");
     }
   };
 
@@ -176,23 +198,6 @@ export function MailApp() {
           </div>
           <span className="count">{drafts.length} open</span>
         </div>
-
-        {message && (
-          <p
-            className="notice"
-            style={{
-              padding: "1rem",
-              borderRadius: "0.5rem",
-              background: message.startsWith("✅")
-                ? "#d1fae5"
-                : "#fee2e2",
-              color: message.startsWith("✅") ? "#065f46" : "#991b1b",
-              marginBottom: "1rem",
-            }}
-          >
-            {message}
-          </p>
-        )}
 
         {loading && (
           <div
@@ -408,11 +413,14 @@ export function MailApp() {
                     <>
                       <button
                         className="button ghost"
-                        onClick={() =>
-                          update(draft.id, { draft_body: draft.draft_body }).then(
-                            () => setMessage("✅ Draft saved.")
-                          )
-                        }
+                        onClick={async () => {
+                          try {
+                            await update(draft.id, { draft_body: draft.draft_body });
+                            showNotification("Draft saved", "success");
+                          } catch (err) {
+                            showNotification(err instanceof Error ? err.message : "Failed to save draft", "error");
+                          }
+                        }}
                       >
                         💾 Edit / Save
                       </button>
@@ -453,6 +461,11 @@ export function MailApp() {
           </div>
         )}
       </section>
+      <StickyNotification 
+        message={message} 
+        type={messageType} 
+        onClose={() => setMessage("")} 
+      />
     </main>
   );
 }
