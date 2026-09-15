@@ -2,21 +2,26 @@ import "server-only";
 
 /**
  * Calculate spam score for an email (0-100, higher = more likely spam)
+ * Can optionally learn from historical spam training data
  */
-export function calculateSpamScore(email: {
-  from_email: string | null;
-  from_name: string | null;
-  subject: string | null;
-  body: string;
-}): number {
+export async function calculateSpamScore(
+  email: {
+    from_email: string | null;
+    from_name: string | null;
+    subject: string | null;
+    body: string;
+  },
+  trainingData?: Array<{ from_email: string; subject: string; body: string }>
+): Promise<number> {
   let score = 0;
 
-  // Spam indicators with weights
+  // Base spam indicators with weights
   const spamKeywords = [
     "guest post", "backlink", "seo", "buy now", "click here", "limited time",
     "act now", "urgent", "winner", "congratulations", "free money", "casino",
     "viagra", "cialis", "weight loss", "make money", "work from home",
-    "million dollars", "nigerian prince", "inheritance", "lottery"
+    "million dollars", "nigerian prince", "inheritance", "lottery",
+    "premium guest posting", "high authority", "do-follow", "niche relevant"
   ];
 
   const subject = (email.subject || "").toLowerCase();
@@ -41,6 +46,13 @@ export function calculateSpamScore(email: {
   if (fromEmail.includes("noreply") || fromEmail.includes("no-reply")) score += 5;
   if (/\d{3,}/.test(fromEmail)) score += 10; // Many numbers in email
   if (fromEmail.includes(".xyz") || fromEmail.includes(".info")) score += 5;
+  
+  // Known spam domains
+  const spamDomains = ["@gmail.com", "@yahoo.com", "@hotmail.com"];
+  const isPersonalEmail = spamDomains.some(d => fromEmail.includes(d));
+  if (isPersonalEmail && (subject.includes("seo") || subject.includes("guest post"))) {
+    score += 15; // Personal emails offering SEO = high spam probability
+  }
 
   // Subject spam patterns (20 points)
   if (subject.includes("re:") && subject.includes("fwd:")) score += 10;
@@ -51,6 +63,20 @@ export function calculateSpamScore(email: {
   if (body.includes("unsubscribe")) score += 5;
   if ((body.match(/http/g) || []).length > 5) score += 10; // Many links
   if (body.length < 50) score += 5; // Very short
+
+  // Learn from training data (if provided)
+  if (trainingData && trainingData.length > 0) {
+    const similarSpam = trainingData.filter(t => {
+      const similarity = 
+        (t.from_email === email.from_email ? 30 : 0) +
+        (t.subject.toLowerCase().includes(subject.split(" ").slice(0, 3).join(" ")) ? 20 : 0);
+      return similarity > 20;
+    });
+    
+    if (similarSpam.length > 0) {
+      score += 20; // User marked similar email as spam before
+    }
+  }
 
   return Math.min(score, 100);
 }

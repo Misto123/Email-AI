@@ -17,6 +17,7 @@ export function MailApp() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [spamCount, setSpamCount] = useState(0);
 
   const load = async () => {
     try {
@@ -28,6 +29,10 @@ export function MailApp() {
       }
       const data = await response.json();
       setDrafts(data);
+      
+      // Load spam count
+      // TODO: Create spam folder endpoint
+      setSpamCount(0);
     } catch (err) {
       console.error("Error loading drafts:", err);
       setError(
@@ -101,6 +106,41 @@ export function MailApp() {
     return { emoji: "✅", text: "Legitimate", color: "#10b981" };
   };
 
+  const markAsSpam = async (emailId: string, draftId: string) => {
+    if (!window.confirm("Mark this as spam? This will help improve spam detection.")) return;
+    try {
+      const response = await fetch(`/api/emails/${emailId}/mark-spam`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_spam: true }),
+      });
+      if (!response.ok) throw new Error();
+      setDrafts((items) => items.filter((item) => item.id !== draftId));
+      setMessage("✅ Marked as spam! System is learning...");
+    } catch {
+      setMessage("❌ Unable to mark as spam");
+    }
+  };
+
+  const archiveEmail = async (emailId: string, draftId: string) => {
+    try {
+      const response = await fetch(`/api/emails/${emailId}/archive`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error();
+      setDrafts((items) => items.filter((item) => item.id !== draftId));
+      setMessage("✅ Email archived");
+    } catch {
+      setMessage("❌ Unable to archive");
+    }
+  };
+
+  const isSelfSent = (draft: Draft) => {
+    const fromEmail = draft.emails.from_email?.toLowerCase();
+    const toEmail = draft.emails.mailboxes.email.toLowerCase();
+    return fromEmail === toEmail;
+  };
+
   return (
     <main className="mail-shell">
       <header className="topbar">
@@ -113,6 +153,16 @@ export function MailApp() {
           </a>
           <a href="/mailboxes">Mailboxes</a>
           <a href="/settings">Settings</a>
+          <a href="/spam" style={{ color: spamCount > 0 ? "#dc2626" : undefined }}>
+            🚫 Spam {spamCount > 0 && <span style={{ 
+              background: "#dc2626", 
+              color: "white", 
+              padding: "0.2rem 0.5rem", 
+              borderRadius: "1rem", 
+              fontSize: "0.75rem",
+              marginLeft: "0.25rem"
+            }}>{spamCount}</span>}
+          </a>
         </nav>
       </header>
       <section className="content">
@@ -291,13 +341,29 @@ export function MailApp() {
               const spamScore = draft.emails.spam_score || 0;
               const spamLabel = getSpamLabel(spamScore);
               const isHighSpam = spamScore >= 60;
+              const selfSent = isSelfSent(draft);
               
               return (
-              <article className="draft-card" key={draft.id} style={isHighSpam ? { borderLeft: "4px solid #dc2626", background: "#fef2f2" } : {}}>
+              <article className="draft-card" key={draft.id} style={isHighSpam ? { borderLeft: "4px solid #dc2626", background: "#fef2f2" } : selfSent ? { borderLeft: "4px solid #3b82f6", background: "#eff6ff" } : {}}>
                 <div className="draft-meta">
                   <span>📧 {draft.emails.mailboxes.email}</span>
                   <time>{formatDate(draft.emails.received_at)}</time>
                 </div>
+                
+                {/* Self-sent warning */}
+                {selfSent && (
+                  <div style={{ 
+                    padding: "0.75rem", 
+                    borderRadius: "0.5rem", 
+                    background: "#dbeafe",
+                    border: "1px solid #3b82f6",
+                    color: "#1e40af",
+                    marginBottom: "0.75rem",
+                    fontSize: "0.9rem"
+                  }}>
+                    ℹ️ <strong>Self-sent email:</strong> This email was sent from your own mailbox ({draft.emails.mailboxes.email})
+                  </div>
+                )}
                 
                 {/* Spam Score Badge */}
                 <div style={{ 
@@ -330,22 +396,34 @@ export function MailApp() {
                   }}
                 />
                 <div className="actions">
-                  <button
-                    className="button ghost"
-                    onClick={() =>
-                      update(draft.id, { draft_body: draft.draft_body }).then(
-                        () => setMessage("✅ Draft saved.")
-                      )
-                    }
-                  >
-                    💾 Edit / Save
-                  </button>
-                  <button
-                    className="button primary"
-                    onClick={() => void send(draft)}
-                  >
-                    📤 Send
-                  </button>
+                  {selfSent ? (
+                    <button
+                      className="button primary"
+                      onClick={() => void archiveEmail(draft.emails.id, draft.id)}
+                      style={{ background: "#3b82f6" }}
+                    >
+                      📁 Archive
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className="button ghost"
+                        onClick={() =>
+                          update(draft.id, { draft_body: draft.draft_body }).then(
+                            () => setMessage("✅ Draft saved.")
+                          )
+                        }
+                      >
+                        💾 Edit / Save
+                      </button>
+                      <button
+                        className="button primary"
+                        onClick={() => void send(draft)}
+                      >
+                        ���� Send
+                      </button>
+                    </>
+                  )}
                   {isHighSpam && (
                     <button
                       className="button danger"
@@ -355,6 +433,13 @@ export function MailApp() {
                       🚫 Delete Spam
                     </button>
                   )}
+                  <button
+                    className="button"
+                    onClick={() => void markAsSpam(draft.emails.id, draft.id)}
+                    style={{ background: "#f59e0b", color: "white" }}
+                  >
+                    🚩 Mark as Spam
+                  </button>
                   <button
                     className="button danger"
                     onClick={() => void remove(draft.id)}

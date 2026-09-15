@@ -53,7 +53,7 @@ export async function GET(request: Request) {
           const receivedAt = message.internalDate instanceof Date ? message.internalDate.toISOString() : message.internalDate || new Date().toISOString();
           
           // Calculate spam score
-          const spamScore = calculateSpamScore({
+          const spamScore = await calculateSpamScore({
             from_email: sender.email,
             from_name: sender.name,
             subject: parsed.subject,

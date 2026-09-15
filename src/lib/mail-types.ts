@@ -20,6 +20,26 @@ export interface EmailRecord {
   spam_score?: number;
   in_reply_to?: string | null;
   references?: string | null;
+  folder?: string;
+  is_spam?: boolean;
+  is_archived?: boolean;
+}
+
+export interface Folder {
+  id: string;
+  mailbox_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+  email_count?: number;
+}
+
+export interface SpamTraining {
+  id: string;
+  email_id: string;
+  is_spam: boolean;
+  marked_by: string;
+  marked_at: string;
 }
 
 export interface Draft {
