@@ -71,7 +71,7 @@ export default function SpamPage() {
           inbox<span>draft</span>
         </a>
         <nav>
-          <a href="/">Drafts</a>
+          <a href="/drafts">Drafts</a>
           <a href="/mailboxes">Mailboxes</a>
           <a href="/settings">Settings</a>
           <a className="active" href="/spam">

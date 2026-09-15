@@ -1,5 +1,5 @@
-import { MailApp } from "@/components/mail-app";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return <MailApp />;
+  redirect("/mailboxes");
 }

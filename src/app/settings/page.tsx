@@ -71,7 +71,7 @@ export default function SettingsPage() {
           inbox<span>draft</span>
         </a>
         <nav>
-          <a href="/">Drafts</a>
+          <a href="/drafts">Drafts</a>
           <a href="/mailboxes">Mailboxes</a>
           <a className="active" href="/settings">
             Settings

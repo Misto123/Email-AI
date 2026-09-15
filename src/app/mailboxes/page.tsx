@@ -94,7 +94,7 @@ export default function MailboxesPage() {
           inbox<span>draft</span>
         </a>
         <nav>
-          <a href="/">Drafts</a>
+          <a href="/drafts">Drafts</a>
           <a className="active" href="/mailboxes">
             Mailboxes
           </a>
@@ -323,25 +323,6 @@ export default function MailboxesPage() {
                   </button>
                   <button onClick={() => void test(mailbox.id, "smtp")}>
                     📤 Test SMTP
-                  </button>
-                  <button
-                    className="delete-link"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Delete ${mailbox.email}? This cannot be undone.`
-                        )
-                      ) {
-                        fetch(`/api/mailboxes/${mailbox.id}`, {
-                          method: "DELETE",
-                        }).then(() => {
-                          setMessage("✅ Mailbox deleted");
-                          void load();
-                        });
-                      }
-                    }}
-                  >
-                    🗑️ Delete
                   </button>
                 </div>
               </article>

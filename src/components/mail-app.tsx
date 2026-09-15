@@ -170,7 +170,7 @@ export function MailApp() {
           inbox<span>draft</span>
         </a>
         <nav>
-          <a className="active" href="/">
+          <a className="active" href="/drafts">
             Drafts
           </a>
           <a href="/mailboxes">Mailboxes</a>
