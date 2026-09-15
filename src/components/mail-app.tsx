@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Draft, PendingEmail } from "@/lib/mail-types";
+import type { Draft, PendingEmail, Mailbox } from "@/lib/mail-types";
 import { StickyNotification } from "./sticky-notification";
 
 const formatDate = (value: string | null) =>
@@ -16,6 +16,8 @@ const formatDate = (value: string | null) =>
 export function MailApp() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [pendingEmails, setPendingEmails] = useState<PendingEmail[]>([]);
+  const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
+  const [selectedMailbox, setSelectedMailbox] = useState<string>("all");
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "info" | "warning">("info");
@@ -32,6 +34,13 @@ export function MailApp() {
     try {
       setLoading(true);
       setError(null);
+      
+      // Load mailboxes
+      const mailboxesResponse = await fetch("/api/mailboxes");
+      if (mailboxesResponse.ok) {
+        const mailboxesData = await mailboxesResponse.json();
+        setMailboxes(mailboxesData);
+      }
       
       // Load drafts
       const draftsResponse = await fetch("/api/drafts");
@@ -203,6 +212,15 @@ export function MailApp() {
     return fromEmail === toEmail;
   };
 
+  // Filter drafts and pending emails by selected mailbox
+  const filteredDrafts = selectedMailbox === "all" 
+    ? drafts 
+    : drafts.filter(d => d.mailbox_id === selectedMailbox);
+  
+  const filteredPendingEmails = selectedMailbox === "all"
+    ? pendingEmails
+    : pendingEmails.filter(e => e.mailbox_id === selectedMailbox);
+
   return (
     <main className="mail-shell">
       <header className="topbar">
@@ -240,6 +258,50 @@ export function MailApp() {
             {drafts.length} drafts · {pendingEmails.length} pending
           </span>
         </div>
+
+        {/* Mailbox Filter Dropdown */}
+        {mailboxes.length > 1 && (
+          <div style={{ marginBottom: "1.5rem" }}>
+            <label 
+              htmlFor="mailbox-filter" 
+              style={{ 
+                display: "block", 
+                marginBottom: "0.5rem", 
+                fontSize: "0.9rem", 
+                fontWeight: "600",
+                color: "#374151"
+              }}
+            >
+              Filter by mailbox:
+            </label>
+            <select
+              id="mailbox-filter"
+              value={selectedMailbox}
+              onChange={(e) => setSelectedMailbox(e.target.value)}
+              style={{
+                padding: "0.75rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+                fontSize: "1rem",
+                width: "100%",
+                maxWidth: "400px",
+                cursor: "pointer"
+              }}
+            >
+              <option value="all">All Mailboxes ({drafts.length + pendingEmails.length})</option>
+              {mailboxes.map((mailbox) => {
+                const mailboxDrafts = drafts.filter(d => d.mailbox_id === mailbox.id).length;
+                const mailboxPending = pendingEmails.filter(e => e.mailbox_id === mailbox.id).length;
+                const total = mailboxDrafts + mailboxPending;
+                return (
+                  <option key={mailbox.id} value={mailbox.id}>
+                    {mailbox.email} ({total})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
 
         {loading && (
           <div
@@ -356,7 +418,7 @@ export function MailApp() {
           </div>
         )}
 
-        {!loading && !error && drafts.length === 0 && pendingEmails.length === 0 && (
+        {!loading && !error && filteredDrafts.length === 0 && filteredPendingEmails.length === 0 && (
           <div className="empty">
             <strong>📭 No emails yet</strong>
             <span>
@@ -382,13 +444,13 @@ export function MailApp() {
           </div>
         )}
 
-        {!loading && !error && pendingEmails.length > 0 && (
+        {!loading && !error && filteredPendingEmails.length > 0 && (
           <>
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem", color: "#374151" }}>
-              📬 Pending Emails ({pendingEmails.length})
+              📬 Pending Emails ({filteredPendingEmails.length})
             </h2>
             <div className="draft-list">
-              {pendingEmails.map((email) => {
+              {filteredPendingEmails.map((email) => {
                 const spamScore = email.spam_score || 0;
                 const spamLabel = getSpamLabel(spamScore);
                 const isHighSpam = spamScore >= 60;
@@ -457,13 +519,13 @@ export function MailApp() {
           </>
         )}
 
-        {!loading && !error && drafts.length > 0 && (
+        {!loading && !error && filteredDrafts.length > 0 && (
           <>
             <h2 style={{ fontSize: "1.25rem", marginTop: "2rem", marginBottom: "1rem", color: "#374151" }}>
-              📝 AI Drafts ({drafts.length})
+              📝 AI Drafts ({filteredDrafts.length})
             </h2>
             <div className="draft-list">
-            {drafts.map((draft) => {
+            {filteredDrafts.map((draft) => {
               const spamScore = draft.emails.spam_score || 0;
               const spamLabel = getSpamLabel(spamScore);
               const isHighSpam = spamScore >= 60;

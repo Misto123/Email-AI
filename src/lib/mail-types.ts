@@ -5,6 +5,12 @@ export interface Mailbox {
   prompt: string | null;
   reply_language?: string;
   created_at: string;
+  last_imap_check?: string | null;
+  last_smtp_check?: string | null;
+  imap_status?: "online" | "offline" | "unknown";
+  smtp_status?: "online" | "offline" | "unknown";
+  last_imap_error?: string | null;
+  last_smtp_error?: string | null;
 }
 
 export interface EmailRecord {

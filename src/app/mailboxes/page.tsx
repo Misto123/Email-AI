@@ -302,15 +302,74 @@ export default function MailboxesPage() {
               </div>
             )}
             
-            {items.map((mailbox) => (
+            {items.map((mailbox) => {
+              const getStatusIcon = (status?: "online" | "offline" | "unknown") => {
+                if (status === "online") return "🟢";
+                if (status === "offline") return "🔴";
+                return "⚪";
+              };
+              
+              const getStatusText = (status?: "online" | "offline" | "unknown") => {
+                if (status === "online") return "Online";
+                if (status === "offline") return "Offline";
+                return "Unknown";
+              };
+
+              const formatCheckTime = (time?: string | null) => {
+                if (!time) return "Never checked";
+                const date = new Date(time);
+                const now = new Date();
+                const diffMs = now.getTime() - date.getTime();
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (diffMins < 1) return "Just now";
+                if (diffMins < 60) return `${diffMins}m ago`;
+                const diffHours = Math.floor(diffMins / 60);
+                if (diffHours < 24) return `${diffHours}h ago`;
+                const diffDays = Math.floor(diffHours / 24);
+                return `${diffDays}d ago`;
+              };
+
+              return (
               <article className="mailbox-row" key={mailbox.id}>
                 <div>
-                  <strong>{mailbox.email}</strong>
-                  <span>
-                    {mailbox.ai_enabled ? "🤖 AI enabled" : "⏸️ AI paused"}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                    <strong>{mailbox.email}</strong>
+                    <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                      {mailbox.ai_enabled ? "🤖 AI enabled" : "⏸️ AI paused"}
+                    </span>
+                  </div>
+                  
+                  {/* Connection Status */}
+                  <div style={{ 
+                    display: "flex", 
+                    gap: "1rem", 
+                    fontSize: "0.85rem",
+                    marginTop: "0.5rem"
+                  }}>
+                    <span 
+                      style={{ 
+                        color: mailbox.imap_status === "online" ? "#059669" : mailbox.imap_status === "offline" ? "#dc2626" : "#6b7280"
+                      }}
+                      title={mailbox.last_imap_error || formatCheckTime(mailbox.last_imap_check)}
+                    >
+                      {getStatusIcon(mailbox.imap_status)} IMAP: {getStatusText(mailbox.imap_status)}
+                    </span>
+                    <span 
+                      style={{ 
+                        color: mailbox.smtp_status === "online" ? "#059669" : mailbox.smtp_status === "offline" ? "#dc2626" : "#6b7280"
+                      }}
+                      title={mailbox.last_smtp_error || formatCheckTime(mailbox.last_smtp_check)}
+                    >
+                      {getStatusIcon(mailbox.smtp_status)} SMTP: {getStatusText(mailbox.smtp_status)}
+                    </span>
+                    <span style={{ color: "#9ca3af", fontSize: "0.8rem" }}>
+                      {formatCheckTime(mailbox.last_imap_check || mailbox.last_smtp_check)}
+                    </span>
+                  </div>
+
                   {mailbox.prompt && (
-                    <small style={{ display: "block", color: "#6b7280", marginTop: "0.25rem" }}>
+                    <small style={{ display: "block", color: "#6b7280", marginTop: "0.5rem" }}>
                       Custom instructions: {mailbox.prompt.substring(0, 60)}
                       {mailbox.prompt.length > 60 ? "..." : ""}
                     </small>
@@ -326,7 +385,8 @@ export default function MailboxesPage() {
                   </button>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

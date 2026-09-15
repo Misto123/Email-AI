@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import type { Draft, Mailbox } from "@/lib/mail-types";
 
 export async function getMailboxes() {
-  const { data, error } = await supabaseAdmin.from("mailboxes").select("id,email,ai_enabled,prompt,created_at").order("created_at", { ascending: true });
+  const { data, error } = await supabaseAdmin.from("mailboxes").select("id,email,ai_enabled,prompt,created_at,last_imap_check,last_smtp_check,imap_status,smtp_status,last_imap_error,last_smtp_error").order("created_at", { ascending: true });
   if (error) throw error;
   return (data || []) as Mailbox[];
 }
