@@ -11,18 +11,24 @@ export async function calculateSpamScore(
     subject: string | null;
     body: string;
   },
-  trainingData?: Array<{ from_email: string; subject: string; body: string }>
+  trainingData?: Array<{ from_email: string; subject: string; body: string }>,
+  customKeywords?: string[]
 ): Promise<number> {
   let score = 0;
 
   // Base spam indicators with weights
-  const spamKeywords = [
+  const defaultKeywords = [
     "guest post", "backlink", "seo", "buy now", "click here", "limited time",
     "act now", "urgent", "winner", "congratulations", "free money", "casino",
     "viagra", "cialis", "weight loss", "make money", "work from home",
     "million dollars", "nigerian prince", "inheritance", "lottery",
     "premium guest posting", "high authority", "do-follow", "niche relevant"
   ];
+
+  // Use custom keywords if provided, otherwise use defaults
+  const spamKeywords = customKeywords && customKeywords.length > 0 
+    ? customKeywords.map(k => k.toLowerCase().trim()).filter(k => k)
+    : defaultKeywords;
 
   const subject = (email.subject || "").toLowerCase();
   const body = email.body.toLowerCase();

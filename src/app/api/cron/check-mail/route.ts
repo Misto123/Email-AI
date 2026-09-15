@@ -34,6 +34,17 @@ function parseFrom(value: string | null) {
 
 export async function GET(request: Request) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  // Load spam settings
+  const { data: settings } = await supabaseAdmin
+    .from("settings")
+    .select("spam_threshold,spam_keywords")
+    .limit(1)
+    .maybeSingle();
+  
+  const spamThreshold = settings?.spam_threshold || 80;
+  const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
+  
   const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
   if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
@@ -52,13 +63,13 @@ export async function GET(request: Request) {
           const sender = parseFrom(parsed.from);
           const receivedAt = message.internalDate instanceof Date ? message.internalDate.toISOString() : message.internalDate || new Date().toISOString();
           
-          // Calculate spam score
+          // Calculate spam score with custom keywords
           const spamScore = await calculateSpamScore({
             from_email: sender.email,
             from_name: sender.name,
             subject: parsed.subject,
             body: parsed.body
-          });
+          }, undefined, customKeywords);
           
           const { data: saved, error: saveError } = await supabaseAdmin.from("emails").insert({ 
             mailbox_id: mailbox.id, 
@@ -74,11 +85,9 @@ export async function GET(request: Request) {
           
           if (saveError || !saved) throw saveError || new Error("Could not save email");
           
-          // Only generate AI drafts for non-spam emails (score < 70)
-          if (mailbox.ai_enabled && spamScore < 70) {
-            const draft = await generateReply(saved, mailbox.prompt, "en");
-            await supabaseAdmin.from("drafts").insert({ email_id: saved.id, mailbox_id: mailbox.id, draft_body: draft });
-          }
+          // DON'T auto-generate AI drafts anymore - user will click "Generate Reply" button
+          // Just import emails and let user generate on-demand
+          
           imported += 1;
         }
       } finally { lock.release(); await client.logout(); }
