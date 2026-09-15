@@ -19,6 +19,18 @@ export function MailApp() {
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   const [selectedMailbox, setSelectedMailbox] = useState<string>("all");
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarEmailId, setSidebarEmailId] = useState<string | null>(null);
+  const [emailHistory, setEmailHistory] = useState<Array<{
+    id: string;
+    from_email: string | null;
+    from_name: string | null;
+    subject: string | null;
+    body: string | null;
+    received_at: string | null;
+    spam_score?: number;
+  }>>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "info" | "warning">("info");
   const [loading, setLoading] = useState(true);
@@ -204,6 +216,36 @@ export function MailApp() {
     } finally {
       setGeneratingFor(null);
     }
+  };
+
+  const loadHistory = async (emailId: string) => {
+    try {
+      setLoadingHistory(true);
+      const response = await fetch(`/api/emails/${emailId}/history`);
+      if (response.ok) {
+        const data = await response.json();
+        setEmailHistory(data);
+      } else {
+        setEmailHistory([]);
+      }
+    } catch (err) {
+      console.error("Error loading history:", err);
+      setEmailHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openSidebar = (emailId: string) => {
+    setSidebarEmailId(emailId);
+    setSidebarOpen(true);
+    void loadHistory(emailId);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    setSidebarEmailId(null);
+    setEmailHistory([]);
   };
 
   const isSelfSent = (draft: Draft) => {
@@ -505,6 +547,13 @@ export function MailApp() {
                       </button>
                       <button
                         className="button"
+                        onClick={() => openSidebar(email.id)}
+                        style={{ background: "#3b82f6", color: "white" }}
+                      >
+                        📋 Details
+                      </button>
+                      <button
+                        className="button"
                         onClick={() => void markAsSpam(email.id, "")}
                         style={{ background: "#f59e0b", color: "white" }}
                         disabled={isGenerating}
@@ -585,13 +634,22 @@ export function MailApp() {
                 />
                 <div className="actions">
                   {selfSent ? (
-                    <button
-                      className="button primary"
-                      onClick={() => void archiveEmail(draft.emails.id, draft.id)}
-                      style={{ background: "#3b82f6" }}
-                    >
-                      📁 Archive
-                    </button>
+                    <>
+                      <button
+                        className="button primary"
+                        onClick={() => void archiveEmail(draft.emails.id, draft.id)}
+                        style={{ background: "#3b82f6" }}
+                      >
+                        📁 Archive
+                      </button>
+                      <button
+                        className="button"
+                        onClick={() => openSidebar(draft.emails.id)}
+                        style={{ background: "#3b82f6", color: "white" }}
+                      >
+                        📋 Details
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button
@@ -611,7 +669,14 @@ export function MailApp() {
                         className="button primary"
                         onClick={() => void send(draft)}
                       >
-                        ���� Send
+                        📤 Send
+                      </button>
+                      <button
+                        className="button"
+                        onClick={() => openSidebar(draft.emails.id)}
+                        style={{ background: "#3b82f6", color: "white" }}
+                      >
+                        📋 Details
                       </button>
                     </>
                   )}
@@ -645,6 +710,146 @@ export function MailApp() {
           </>
         )}
       </section>
+
+      {/* Right Sidebar - Email History */}
+      {sidebarOpen && (
+        <>
+          {/* Overlay */}
+          <div 
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={closeSidebar}
+          />
+          
+          {/* Sidebar */}
+          <aside
+            style={{
+              position: "fixed",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: "450px",
+              maxWidth: "90vw",
+              background: "white",
+              boxShadow: "-4px 0 12px rgba(0, 0, 0, 0.1)",
+              zIndex: 1000,
+              overflowY: "auto",
+              padding: "2rem",
+            }}
+          >
+            {/* Header */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              marginBottom: "1.5rem",
+              paddingBottom: "1rem",
+              borderBottom: "2px solid #e5e7eb"
+            }}>
+              <h2 style={{ margin: 0, fontSize: "1.5rem", color: "#111827" }}>
+                📧 Email History
+              </h2>
+              <button
+                onClick={closeSidebar}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  lineHeight: 1,
+                }}
+                aria-label="Close sidebar"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Loading State */}
+            {loadingHistory && (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#6b7280" }}>
+                <p style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>⏳</p>
+                <p>Loading history...</p>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loadingHistory && emailHistory.length === 0 && (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#6b7280" }}>
+                <p style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📭</p>
+                <p>No previous emails from this sender</p>
+              </div>
+            )}
+
+            {/* History List */}
+            {!loadingHistory && emailHistory.length > 0 && (
+              <>
+                <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "1rem" }}>
+                  Found {emailHistory.length} previous email{emailHistory.length !== 1 ? "s" : ""} from this sender
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {emailHistory.map((email) => (
+                    <article
+                      key={email.id}
+                      style={{
+                        padding: "1rem",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "0.5rem",
+                        background: "#f9fafb",
+                      }}
+                    >
+                      <div style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between",
+                        marginBottom: "0.5rem"
+                      }}>
+                        <time style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                          {formatDate(email.received_at)}
+                        </time>
+                        {email.spam_score !== undefined && (
+                          <span style={{
+                            fontSize: "0.75rem",
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "0.25rem",
+                            background: email.spam_score >= 60 ? "#fee2e2" : email.spam_score >= 40 ? "#fef3c7" : "#f0fdf4",
+                            color: email.spam_score >= 60 ? "#dc2626" : email.spam_score >= 40 ? "#f59e0b" : "#059669",
+                          }}>
+                            Spam: {email.spam_score}
+                          </span>
+                        )}
+                      </div>
+                      <h3 style={{ 
+                        margin: "0 0 0.5rem 0", 
+                        fontSize: "1rem",
+                        color: "#111827"
+                      }}>
+                        {email.subject || "(No subject)"}
+                      </h3>
+                      <p style={{ 
+                        fontSize: "0.9rem", 
+                        color: "#4b5563",
+                        margin: 0,
+                        lineHeight: "1.5"
+                      }}>
+                        {email.body?.slice(0, 150)}
+                        {(email.body?.length || 0) > 150 ? "..." : ""}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
+          </aside>
+        </>
+      )}
+
       <StickyNotification 
         message={message} 
         type={messageType} 
