@@ -71,11 +71,11 @@ export default function SpamPage() {
           inbox<span>draft</span>
         </a>
         <nav>
-          <a href="/drafts">Drafts</a>
+          <a href="/drafts">Inbox</a>
           <a href="/mailboxes">Mailboxes</a>
           <a href="/settings">Settings</a>
           <a className="active" href="/spam">
-            🚫 Spam
+            Spam
           </a>
         </nav>
       </header>

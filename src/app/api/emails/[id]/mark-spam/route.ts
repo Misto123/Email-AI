@@ -12,7 +12,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .update({ is_spam: body.is_spam, folder: body.is_spam ? "spam" : "inbox" })
       .eq("id", id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Update error:", updateError);
+      // Check if columns don't exist
+      if (updateError.message.includes("column") && updateError.message.includes("does not exist")) {
+        throw new Error("Database migration required. Please run migration 003 in Supabase.");
+      }
+      throw updateError;
+    }
 
     // Record spam training data
     const { error: trainingError } = await supabaseAdmin
@@ -23,7 +30,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         marked_by: "user"
       });
 
-    if (trainingError) console.error("Training data error:", trainingError);
+    if (trainingError) {
+      console.error("Training data error:", trainingError);
+      // Don't fail the main operation if training insert fails
+      if (trainingError.message.includes("does not exist")) {
+        console.warn("spam_training table doesn't exist - migration 003 needed");
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

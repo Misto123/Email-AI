@@ -6,14 +6,6 @@ import type { Mailbox } from "@/lib/mail-types";
 
 export default function MailboxesPage() {
   const [items, setItems] = useState<Mailbox[]>([]);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [ai, setAi] = useState(true);
-  const [language, setLanguage] = useState("en");
-  const [message, setMessage] = useState("");
-  const [showInstructions, setShowInstructions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +21,7 @@ export default function MailboxesPage() {
       setItems(data);
     } catch (err) {
       console.error("Error loading mailboxes:", err);
-      setError(err instanceof Error ? err.message : "Failed to load mailboxes. Please run the Supabase migration first.");
+      setError(err instanceof Error ? err.message : "Failed to load mailboxes");
       setItems([]);
     } finally {
       setLoading(false);
@@ -40,51 +32,31 @@ export default function MailboxesPage() {
     void load();
   }, []);
 
-  const reset = () => {
-    setEditing(null);
-    setEmail("");
-    setPassword("");
-    setPrompt("");
-    setAi(true);
-    setLanguage("en");
+  const getStatusIcon = (status?: "online" | "offline" | "unknown") => {
+    if (status === "online") return "🟢";
+    if (status === "offline") return "🔴";
+    return "⚪";
+  };
+  
+  const getStatusText = (status?: "online" | "offline" | "unknown") => {
+    if (status === "online") return "Online";
+    if (status === "offline") return "Offline";
+    return "Unknown";
   };
 
-  const save = async () => {
-    const payload = { email, password, prompt, ai_enabled: ai, reply_language: language };
-    const url = editing ? `/api/mailboxes/${editing}` : "/api/mailboxes";
-    const response = await fetch(url, {
-      method: editing ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (response.ok) {
-      reset();
-      void load();
-      setMessage("✅ Mailbox saved successfully!");
-    } else {
-      const data = await response.json();
-      setMessage(`❌ ${data.error || "Unable to save mailbox."}`);
-    }
-  };
-
-  const edit = (mailbox: Mailbox) => {
-    setEditing(mailbox.id);
-    setEmail(mailbox.email);
-    setPrompt(mailbox.prompt || "");
-    setAi(mailbox.ai_enabled);
-    setLanguage(mailbox.reply_language || "en");
-    setPassword("");
-  };
-
-  const test = async (id: string, type: "imap" | "smtp") => {
-    setMessage("🔄 Testing connection...");
-    const response = await fetch(`/api/mailboxes/${id}/test`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type }),
-    });
-    const data = await response.json();
-    setMessage(data.message || data.error);
+  const formatCheckTime = (time?: string | null) => {
+    if (!time) return "Never checked";
+    const date = new Date(time);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   };
 
   return (
@@ -94,301 +66,113 @@ export default function MailboxesPage() {
           inbox<span>draft</span>
         </a>
         <nav>
-          <a href="/drafts">Drafts</a>
+          <a href="/drafts">Inbox</a>
           <a className="active" href="/mailboxes">
             Mailboxes
           </a>
           <a href="/settings">Settings</a>
+          <a href="/spam">Spam</a>
         </nav>
       </header>
       <section className="content">
         <div className="page-heading">
           <div>
-            <p className="eyebrow">Purelymail connections</p>
-            <h1>Mailboxes</h1>
+            <p className="eyebrow">Connected accounts</p>
+            <h1>Your Mailboxes</h1>
             <p className="lede">
-              Connect up to 20 inboxes. Passwords are encrypted and never
-              returned to the browser.
+              View all connected Purelymail accounts and their connection status.
             </p>
           </div>
           <span className="count">{items.length} / 20</span>
         </div>
 
-        {/* Instructions Panel */}
-        <div className="settings-card" style={{ marginBottom: "2rem", background: "#f0f9ff", borderLeft: "4px solid #3b82f6" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <h3 style={{ margin: 0, color: "#1e40af" }}>📖 How to Add Purelymail Mailboxes</h3>
-            <button 
-              onClick={() => setShowInstructions(!showInstructions)}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem" }}
-            >
-              {showInstructions ? "−" : "+"}
-            </button>
+        {loading && (
+          <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
+            <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>⏳</p>
+            <p>Loading mailboxes...</p>
           </div>
-          
-          {showInstructions && (
-            <div style={{ fontSize: "0.95rem", lineHeight: "1.6" }}>
-              <h4 style={{ marginTop: "1rem", color: "#1e40af" }}>🔐 Step 1: Get Your Purelymail Credentials</h4>
-              <ol style={{ marginLeft: "1.5rem" }}>
-                <li>Log in to your Purelymail account at <a href="https://purelymail.com" target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb" }}>purelymail.com</a></li>
-                <li>Go to your email settings/mailbox configuration</li>
-                <li>Copy your email address and password</li>
-              </ol>
+        )}
 
-              <h4 style={{ marginTop: "1.5rem", color: "#1e40af" }}>📧 Step 2: Enter Connection Details</h4>
-              <ul style={{ marginLeft: "1.5rem" }}>
-                <li><strong>Email Address:</strong> Your full Purelymail email (e.g., sales@yourdomain.com)</li>
-                <li><strong>Password:</strong> Your mailbox password (encrypted with AES-256-GCM)</li>
-                <li><strong>AI Instructions:</strong> Optional custom prompt for this specific mailbox</li>
-              </ul>
+        {error && !loading && (
+          <div style={{ padding: "2rem", textAlign: "center", background: "#fef2f2", borderRadius: "0.5rem", border: "2px solid #dc2626" }}>
+            <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>⚠️</p>
+            <p style={{ color: "#991b1b", fontWeight: "bold", marginBottom: "0.5rem" }}>Error Loading Mailboxes</p>
+            <p style={{ color: "#991b1b", fontSize: "0.9rem" }}>{error}</p>
+          </div>
+        )}
 
-              <h4 style={{ marginTop: "1.5rem", color: "#1e40af" }}>⚙️ Server Configuration (Automatic)</h4>
-              <div style={{ background: "#e0f2fe", padding: "1rem", borderRadius: "0.5rem", fontFamily: "monospace", fontSize: "0.9rem" }}>
-                <strong>IMAP:</strong> imap.purelymail.com:993 (SSL/TLS)<br />
-                <strong>SMTP:</strong> smtp.purelymail.com:465 (SSL/TLS)
-              </div>
-
-              <h4 style={{ marginTop: "1.5rem", color: "#1e40af" }}>✅ Step 3: Test & Save</h4>
-              <ol style={{ marginLeft: "1.5rem" }}>
-                <li>Click "Add mailbox" to save your configuration</li>
-                <li>Click "Test IMAP" to verify incoming mail connection</li>
-                <li>Click "Test SMTP" to verify outgoing mail connection</li>
-                <li>Both tests should return success messages</li>
-              </ol>
-
-              <h4 style={{ marginTop: "1.5rem", color: "#dc2626" }}>🔒 Security Notes</h4>
-              <ul style={{ marginLeft: "1.5rem", color: "#991b1b" }}>
-                <li>Passwords are encrypted before storage using AES-256-GCM</li>
-                <li>Encrypted passwords are NEVER returned to the browser</li>
-                <li>All IMAP/SMTP connections use SSL/TLS encryption</li>
-                <li>Server-side code handles all email operations</li>
-              </ul>
-            </div>
-          )}
-        </div>
-
-        <div className="mailbox-layout">
-          <div className="settings-card">
-            <h2>{editing ? "Edit mailbox" : "Add mailbox"}</h2>
-
-            <label htmlFor="email">Email address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="sales@example.com"
-            />
-
-            <label htmlFor="password">
-              Password{" "}
-              {editing && (
-                <small style={{ color: "#6b7280" }}>
-                  (leave blank to keep current)
-                </small>
-              )}
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Your Purelymail password"
-            />
-
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={ai}
-                onChange={(event) => setAi(event.target.checked)}
-              />{" "}
-              AI drafting enabled
-            </label>
-
-            <label htmlFor="language">
-              Reply Language{" "}
-              <small style={{ color: "#6b7280" }}>(AI will respond in this language)</small>
-            </label>
-            <select
-              id="language"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value)}
-              style={{ padding: "0.75rem", borderRadius: "0.5rem", border: "1px solid #d1d5db" }}
-            >
-              <option value="en">English</option>
-              <option value="es">Spanish (Español)</option>
-              <option value="fr">French (Français)</option>
-              <option value="de">German (Deutsch)</option>
-              <option value="it">Italian (Italiano)</option>
-              <option value="pt">Portuguese (Português)</option>
-              <option value="nl">Dutch (Nederlands)</option>
-              <option value="pl">Polish (Polski)</option>
-              <option value="ru">Russian (Русский)</option>
-              <option value="zh">Chinese (中文)</option>
-              <option value="ja">Japanese (日本語)</option>
-              <option value="ko">Korean (한국어)</option>
-              <option value="ar">Arabic (العربية)</option>
-            </select>
-
-            <label htmlFor="prompt">
-              AI instructions{" "}
-              <small style={{ color: "#6b7280" }}>(optional, mailbox-specific)</small>
-            </label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="E.g., Reply professionally and concisely. Always mention our 30-day money-back guarantee..."
-              rows={4}
-            />
-
-            <div className="actions">
-              <button className="button primary" onClick={() => void save()}>
-                {editing ? "💾 Save changes" : "➕ Add mailbox"}
-              </button>
-              {editing && (
-                <button className="button ghost" onClick={reset}>
-                  Cancel
-                </button>
-              )}
+        {!loading && !error && items.length === 0 && (
+          <div style={{ padding: "3rem", textAlign: "center", background: "#f9fafb", borderRadius: "0.5rem", border: "2px dashed #d1d5db" }}>
+            <p style={{ fontSize: "3rem", marginBottom: "1rem" }}>📭</p>
+            <h2 style={{ marginBottom: "1rem", color: "#111827" }}>No mailboxes yet</h2>
+            <p style={{ fontSize: "1rem", color: "#6b7280", marginBottom: "2rem" }}>
+              Add your first Purelymail mailbox to start managing emails with AI assistance.
+            </p>
+            <a href="/mailboxes/add" className="button primary" style={{ display: "inline-block" }}>
+              ➕ Add Your First Mailbox
+            </a>
+          </div>
+        )}
+        
+        {!loading && !error && items.length > 0 && (
+          <>
+            <div style={{ marginBottom: "2rem" }}>
+              <a href="/mailboxes/add" className="button primary">
+                ➕ Add New Mailbox
+              </a>
             </div>
 
-            {message && (
-              <p
-                className="notice"
-                style={{
-                  padding: "1rem",
-                  borderRadius: "0.5rem",
-                  background: message.startsWith("✅") ? "#d1fae5" : message.startsWith("🔄") ? "#dbeafe" : "#fee2e2",
-                  color: message.startsWith("✅") ? "#065f46" : message.startsWith("🔄") ? "#1e40af" : "#991b1b",
-                  marginTop: "1rem",
-                }}
-              >
-                {message}
-              </p>
-            )}
-          </div>
+            <div className="mailbox-list">
+              {items.map((mailbox) => (
+                <article className="mailbox-row" key={mailbox.id}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                      <strong style={{ fontSize: "1.1rem" }}>{mailbox.email}</strong>
+                      <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+                        {mailbox.ai_enabled ? "🤖 AI enabled" : "⏸️ AI paused"}
+                      </span>
+                    </div>
+                    
+                    {/* Connection Status */}
+                    <div style={{ 
+                      display: "flex", 
+                      gap: "1rem", 
+                      fontSize: "0.85rem",
+                      marginTop: "0.5rem"
+                    }}>
+                      <span 
+                        style={{ 
+                          color: mailbox.imap_status === "online" ? "#059669" : mailbox.imap_status === "offline" ? "#dc2626" : "#6b7280"
+                        }}
+                        title={mailbox.last_imap_error || formatCheckTime(mailbox.last_imap_check)}
+                      >
+                        {getStatusIcon(mailbox.imap_status)} IMAP: {getStatusText(mailbox.imap_status)}
+                      </span>
+                      <span 
+                        style={{ 
+                          color: mailbox.smtp_status === "online" ? "#059669" : mailbox.smtp_status === "offline" ? "#dc2626" : "#6b7280"
+                        }}
+                        title={mailbox.last_smtp_error || formatCheckTime(mailbox.last_smtp_check)}
+                      >
+                        {getStatusIcon(mailbox.smtp_status)} SMTP: {getStatusText(mailbox.smtp_status)}
+                      </span>
+                      <span style={{ color: "#9ca3af", fontSize: "0.8rem" }}>
+                        {formatCheckTime(mailbox.last_imap_check || mailbox.last_smtp_check)}
+                      </span>
+                    </div>
 
-          <div className="mailbox-list">
-            {loading && (
-              <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
-                <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>⏳</p>
-                <p>Loading mailboxes...</p>
-              </div>
-            )}
-
-            {error && !loading && (
-              <div style={{ padding: "2rem", textAlign: "center", background: "#fef2f2", borderRadius: "0.5rem", border: "2px solid #dc2626" }}>
-                <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>⚠️</p>
-                <p style={{ color: "#991b1b", fontWeight: "bold", marginBottom: "0.5rem" }}>Database Error</p>
-                <p style={{ color: "#991b1b", fontSize: "0.9rem", marginBottom: "1rem" }}>{error}</p>
-                <div style={{ background: "#fee2e2", padding: "1rem", borderRadius: "0.5rem", textAlign: "left", fontSize: "0.9rem" }}>
-                  <p style={{ fontWeight: "bold", marginBottom: "0.5rem", color: "#991b1b" }}>To fix this:</p>
-                  <ol style={{ marginLeft: "1.5rem", color: "#7f1d1d" }}>
-                    <li>Go to <a href="https://supabase.com/dashboard/project/xecxfqdhqjiwngblekgf/sql/new" target="_blank" rel="noopener noreferrer" style={{ color: "#dc2626", textDecoration: "underline" }}>Supabase SQL Editor</a></li>
-                    <li>Copy the SQL from <code style={{ background: "#fff", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>/supabase/migrations/001_email_drafts.sql</code></li>
-                    <li>Paste and click "Run"</li>
-                    <li>Reload this page</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            {!loading && !error && items.length === 0 && (
-              <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
-                <p style={{ fontSize: "2rem", marginBottom: "1rem" }}>📭</p>
-                <p>No mailboxes configured yet.</p>
-                <p style={{ fontSize: "0.9rem" }}>Add your first Purelymail mailbox to get started!</p>
-              </div>
-            )}
-            
-            {items.map((mailbox) => {
-              const getStatusIcon = (status?: "online" | "offline" | "unknown") => {
-                if (status === "online") return "🟢";
-                if (status === "offline") return "🔴";
-                return "⚪";
-              };
-              
-              const getStatusText = (status?: "online" | "offline" | "unknown") => {
-                if (status === "online") return "Online";
-                if (status === "offline") return "Offline";
-                return "Unknown";
-              };
-
-              const formatCheckTime = (time?: string | null) => {
-                if (!time) return "Never checked";
-                const date = new Date(time);
-                const now = new Date();
-                const diffMs = now.getTime() - date.getTime();
-                const diffMins = Math.floor(diffMs / 60000);
-                
-                if (diffMins < 1) return "Just now";
-                if (diffMins < 60) return `${diffMins}m ago`;
-                const diffHours = Math.floor(diffMins / 60);
-                if (diffHours < 24) return `${diffHours}h ago`;
-                const diffDays = Math.floor(diffHours / 24);
-                return `${diffDays}d ago`;
-              };
-
-              return (
-              <article className="mailbox-row" key={mailbox.id}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
-                    <strong>{mailbox.email}</strong>
-                    <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
-                      {mailbox.ai_enabled ? "🤖 AI enabled" : "⏸️ AI paused"}
-                    </span>
+                    {mailbox.prompt && (
+                      <small style={{ display: "block", color: "#6b7280", marginTop: "0.5rem" }}>
+                        📝 Custom instructions: {mailbox.prompt.substring(0, 80)}
+                        {mailbox.prompt.length > 80 ? "..." : ""}
+                      </small>
+                    )}
                   </div>
-                  
-                  {/* Connection Status */}
-                  <div style={{ 
-                    display: "flex", 
-                    gap: "1rem", 
-                    fontSize: "0.85rem",
-                    marginTop: "0.5rem"
-                  }}>
-                    <span 
-                      style={{ 
-                        color: mailbox.imap_status === "online" ? "#059669" : mailbox.imap_status === "offline" ? "#dc2626" : "#6b7280"
-                      }}
-                      title={mailbox.last_imap_error || formatCheckTime(mailbox.last_imap_check)}
-                    >
-                      {getStatusIcon(mailbox.imap_status)} IMAP: {getStatusText(mailbox.imap_status)}
-                    </span>
-                    <span 
-                      style={{ 
-                        color: mailbox.smtp_status === "online" ? "#059669" : mailbox.smtp_status === "offline" ? "#dc2626" : "#6b7280"
-                      }}
-                      title={mailbox.last_smtp_error || formatCheckTime(mailbox.last_smtp_check)}
-                    >
-                      {getStatusIcon(mailbox.smtp_status)} SMTP: {getStatusText(mailbox.smtp_status)}
-                    </span>
-                    <span style={{ color: "#9ca3af", fontSize: "0.8rem" }}>
-                      {formatCheckTime(mailbox.last_imap_check || mailbox.last_smtp_check)}
-                    </span>
-                  </div>
-
-                  {mailbox.prompt && (
-                    <small style={{ display: "block", color: "#6b7280", marginTop: "0.5rem" }}>
-                      Custom instructions: {mailbox.prompt.substring(0, 60)}
-                      {mailbox.prompt.length > 60 ? "..." : ""}
-                    </small>
-                  )}
-                </div>
-                <div className="row-actions">
-                  <button onClick={() => edit(mailbox)}>✏️ Edit</button>
-                  <button onClick={() => void test(mailbox.id, "imap")}>
-                    📥 Test IMAP
-                  </button>
-                  <button onClick={() => void test(mailbox.id, "smtp")}>
-                    📤 Test SMTP
-                  </button>
-                </div>
-              </article>
-              );
-            })}
-          </div>
-        </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
       </section>
     </main>
   );

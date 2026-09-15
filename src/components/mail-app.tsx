@@ -271,12 +271,12 @@ export function MailApp() {
         </a>
         <nav>
           <a className="active" href="/drafts">
-            Drafts
+            Inbox
           </a>
           <a href="/mailboxes">Mailboxes</a>
           <a href="/settings">Settings</a>
-          <a href="/spam" style={{ color: spamCount > 0 ? "#dc2626" : undefined }}>
-            🚫 Spam {spamCount > 0 && <span style={{ 
+          <a href="/spam">
+            Spam {spamCount > 0 && <span style={{ 
               background: "#dc2626", 
               color: "white", 
               padding: "0.2rem 0.5rem", 
@@ -290,8 +290,8 @@ export function MailApp() {
       <section className="content">
         <div className="page-heading">
           <div>
-            <p className="eyebrow">Human approval queue</p>
-            <h1>Email Inbox</h1>
+            <p className="eyebrow">Manage your emails</p>
+            <h1>Inbox</h1>
             <p className="lede">
               Generate AI replies on-demand, review every reply before sending.
             </p>
