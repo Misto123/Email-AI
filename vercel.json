@@ -1,6 +1,6 @@
 {
   "crons": [
     { "path": "/api/cron/check-mail", "schedule": "0 0 * * *" },
-    { "path": "/api/mailboxes/check-connections", "schedule": "0 0,12 * * *" }
+    { "path": "/api/mailboxes/check-connections", "schedule": "0 6 * * *" }
   ]
 }
