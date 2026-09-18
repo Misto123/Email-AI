@@ -157,15 +157,20 @@ export function MailApp() {
   const markAsSpam = async (emailId: string, draftId: string) => {
     if (!window.confirm("Mark this as spam? This will help improve spam detection.")) return;
     try {
+      console.log('[markAsSpam] Starting for emailId:', emailId, 'draftId:', draftId);
       const response = await fetch(`/api/emails/${emailId}/mark-spam`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_spam: true }),
       });
+      console.log('[markAsSpam] Response status:', response.status, response.statusText);
       if (!response.ok) {
         const data = await response.json();
+        console.error('[markAsSpam] API error:', data);
         throw new Error(data.error || "Failed to mark as spam");
       }
+      const result = await response.json();
+      console.log('[markAsSpam] Success:', result);
       // Remove from drafts if it has a draft
       if (draftId) {
         setDrafts((items) => items.filter((item) => item.id !== draftId));
@@ -174,6 +179,7 @@ export function MailApp() {
       setPendingEmails((items) => items.filter((item) => item.id !== emailId));
       showNotification("Marked as spam! System is learning...", "success");
     } catch (err) {
+      console.error('[markAsSpam] Error:', err);
       showNotification(err instanceof Error ? err.message : "Unable to mark as spam. Migration may be required.", "error");
     }
   };
@@ -669,7 +675,7 @@ export function MailApp() {
                         className="button primary"
                         onClick={() => void send(draft)}
                       >
-                        📤 Send
+                        ✉️ Send
                       </button>
                       <button
                         className="button"
