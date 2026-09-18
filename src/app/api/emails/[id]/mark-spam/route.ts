@@ -7,17 +7,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const body = await request.json() as { is_spam: boolean };
     
     // Mark email as spam/not spam
-    const { error: updateError } = await supabaseAdmin
+    // Try with folder first, fallback to just is_spam if schema cache not updated
+    let updateError = null;
+    const updateData: any = { is_spam: body.is_spam };
+    
+    // Try updating with folder column
+    const { error: fullUpdateError } = await supabaseAdmin
       .from("emails")
-      .update({ is_spam: body.is_spam, folder: body.is_spam ? "spam" : "inbox" })
+      .update({ ...updateData, folder: body.is_spam ? "spam" : "inbox" })
       .eq("id", id);
+
+    if (fullUpdateError && fullUpdateError.code === 'PGRST204') {
+      // Schema cache issue - try without folder column
+      console.warn("Schema cache outdated, updating without folder column");
+      const { error: fallbackError } = await supabaseAdmin
+        .from("emails")
+        .update(updateData)
+        .eq("id", id);
+      updateError = fallbackError;
+    } else {
+      updateError = fullUpdateError;
+    }
 
     if (updateError) {
       console.error("Update error:", updateError);
-      // Check if columns don't exist
-      if (updateError.message.includes("column") && updateError.message.includes("does not exist")) {
-        throw new Error("Database migration required. Please run migration 003 in Supabase.");
-      }
       throw updateError;
     }
 

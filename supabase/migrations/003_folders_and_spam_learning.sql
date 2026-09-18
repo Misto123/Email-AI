@@ -12,8 +12,8 @@ ALTER TABLE emails ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;
 
 -- Create folders table for custom categories
 CREATE TABLE IF NOT EXISTS folders (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  mailbox_id TEXT NOT NULL REFERENCES mailboxes(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mailbox_id UUID NOT NULL REFERENCES mailboxes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT DEFAULT 'blue',
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -22,17 +22,17 @@ CREATE TABLE IF NOT EXISTS folders (
 
 -- Create email folder assignments (many-to-many)
 CREATE TABLE IF NOT EXISTS email_folders (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  email_id TEXT NOT NULL REFERENCES emails(id) ON DELETE CASCADE,
-  folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email_id UUID NOT NULL REFERENCES emails(id) ON DELETE CASCADE,
+  folder_id UUID NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
   assigned_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(email_id, folder_id)
 );
 
 -- Create spam training data table
 CREATE TABLE IF NOT EXISTS spam_training (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  email_id TEXT NOT NULL REFERENCES emails(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email_id UUID NOT NULL REFERENCES emails(id) ON DELETE CASCADE,
   is_spam BOOLEAN NOT NULL,
   marked_by TEXT DEFAULT 'user',
   marked_at TIMESTAMPTZ DEFAULT NOW()

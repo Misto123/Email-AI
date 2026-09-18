@@ -9,7 +9,7 @@ ALTER TABLE mailboxes ADD COLUMN IF NOT EXISTS reply_language TEXT DEFAULT 'en';
 
 -- Add In-Reply-To and References for threading
 ALTER TABLE emails ADD COLUMN IF NOT EXISTS in_reply_to TEXT;
-ALTER TABLE emails ADD COLUMN IF NOT EXISTS references TEXT;
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS "references" TEXT;
 
 -- Add sent_at timestamp to drafts
 ALTER TABLE drafts ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ;

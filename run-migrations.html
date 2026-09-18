@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Run Supabase Migrations</title>
+  <title>Run Supabase Migrations - Email AI</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -12,15 +12,45 @@
       padding: 0 20px;
       line-height: 1.6;
       color: #1f2937;
+      background: #f9fafb;
     }
     h1 { color: #111827; margin-bottom: 10px; }
     .eyebrow { color: #6b7280; font-size: 0.9rem; margin-bottom: 30px; }
+    .hero {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin: 30px 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .hero h2 {
+      margin: 0 0 15px 0;
+      font-size: 1.5rem;
+    }
+    .hero p {
+      margin: 0;
+      opacity: 0.9;
+    }
+    .hero button {
+      background: white;
+      color: #2563eb;
+      margin-top: 20px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      padding: 15px 30px;
+    }
+    .hero button:hover {
+      background: #f3f4f6;
+      color: #1e40af;
+    }
     .step {
-      background: #f9fafb;
+      background: white;
       border-left: 4px solid #3b82f6;
       padding: 20px;
       margin: 20px 0;
       border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .step h2 {
       margin-top: 0;
@@ -37,30 +67,39 @@
       font-size: 1rem;
       margin-right: 10px;
       margin-bottom: 10px;
+      transition: background 0.2s;
     }
     button:hover { background: #2563eb; }
     button.success {
       background: #10b981;
     }
     button.success:hover { background: #059669; }
-    pre {
-      background: #1f2937;
-      color: #f3f4f6;
-      padding: 15px;
-      border-radius: 6px;
-      overflow-x: auto;
-      font-size: 0.9rem;
-    }
     .migration {
       background: white;
       border: 2px solid #e5e7eb;
       padding: 20px;
       margin: 20px 0;
       border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .migration h3 {
       margin-top: 0;
       color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .migration-number {
+      background: #3b82f6;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
     }
     .copied {
       display: inline-block;
@@ -80,32 +119,91 @@
       margin: 20px 0;
       border-radius: 6px;
     }
+    .info {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 6px;
+    }
+    .project-info {
+      background: #f3f4f6;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+    .divider {
+      text-align: center;
+      margin: 40px 0;
+      color: #9ca3af;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
-  <p class="eyebrow">Database Setup</p>
+  <p class="eyebrow">Email AI • Database Setup</p>
   <h1>🚀 Run Supabase Migrations</h1>
   
+  <div class="info">
+    <strong>📌 Project Info</strong>
+    <div class="project-info">
+      <div><strong>Project:</strong> Email AI</div>
+      <div><strong>Project ID:</strong> xecxfqdhqjiwngblekgf</div>
+      <div><strong>Migrations:</strong> 5 total (001-005)</div>
+    </div>
+  </div>
+
+  <!-- OPTION 1: One-Click -->
+  <div class="hero">
+    <h2>⚡ Fastest Method: One-Click</h2>
+    <p>Copy ALL migrations in one file, paste once, run once. Takes 30 seconds.</p>
+    <button onclick="copyAllMigrations()">📋 Copy All Migrations (Single File)</button>
+    <button onclick="openSQLEditor()" class="success">🔗 Open SQL Editor</button>
+    <span class="copied" id="copied-all" style="color: white;">✓ Copied!</span>
+  </div>
+
+  <div class="divider">— OR —</div>
+
+  <!-- OPTION 2: Individual -->
   <div class="step">
-    <h2>📋 Quick Guide</h2>
-    <p>You need to run 3 migrations in order. For each migration below:</p>
+    <h2>📋 Alternative: Run Individually</h2>
+    <p>If you prefer to run migrations one at a time (takes ~5 minutes):</p>
     <ol>
-      <li><strong>Click "Copy SQL"</strong> button</li>
-      <li><strong>Click "Open SQL Editor"</strong> button (opens Supabase in new tab)</li>
-      <li><strong>Paste</strong> the SQL into the editor (Cmd/Ctrl + V)</li>
-      <li><strong>Click "Run"</strong> in Supabase</li>
-      <li><strong>Return here</strong> and repeat for next migration</li>
+      <li>Click "Copy SQL" for migration 001</li>
+      <li>Click "Open SQL Editor" (opens Supabase)</li>
+      <li>Paste (Cmd/Ctrl + V) and click "Run"</li>
+      <li>Return here and repeat for 002, 003, 004, 005</li>
     </ol>
   </div>
 
   <div class="warning">
-    ⚠️ <strong>Run migrations in order:</strong> 003 → 004 → 005
+    ⚠️ <strong>Important:</strong> Run migrations in order: 001 → 002 → 003 → 004 → 005
+  </div>
+
+  <!-- Migration 001 -->
+  <div class="migration">
+    <h3><span class="migration-number">1</span> Initial Schema</h3>
+    <p>Creates: mailboxes, emails, drafts, settings tables</p>
+    <button onclick="copyMigration('001')">📋 Copy SQL</button>
+    <button onclick="openSQLEditor()" class="success">🔗 Open SQL Editor</button>
+    <span class="copied" id="copied-001">✓ Copied!</span>
+  </div>
+
+  <!-- Migration 002 -->
+  <div class="migration">
+    <h3><span class="migration-number">2</span> Enhancements</h3>
+    <p>Adds: spam_score, reply_language, threading columns</p>
+    <button onclick="copyMigration('002')">📋 Copy SQL</button>
+    <button onclick="openSQLEditor()" class="success">🔗 Open SQL Editor</button>
+    <span class="copied" id="copied-002">✓ Copied!</span>
   </div>
 
   <!-- Migration 003 -->
   <div class="migration">
-    <h3>Migration 003: Folders & Spam Learning</h3>
-    <p>Adds: folder column, is_spam column, spam_training table</p>
+    <h3><span class="migration-number">3</span> Folders & Spam Learning</h3>
+    <p>Adds: folder, is_spam columns, spam_training table, folders system</p>
     <button onclick="copyMigration('003')">📋 Copy SQL</button>
     <button onclick="openSQLEditor()" class="success">🔗 Open SQL Editor</button>
     <span class="copied" id="copied-003">✓ Copied!</span>
@@ -113,8 +211,8 @@
 
   <!-- Migration 004 -->
   <div class="migration">
-    <h3>Migration 004: Spam Settings</h3>
-    <p>Adds: spam_threshold and spam_keywords to settings table</p>
+    <h3><span class="migration-number">4</span> Spam Settings</h3>
+    <p>Adds: spam_threshold, spam_keywords to settings table</p>
     <button onclick="copyMigration('004')">📋 Copy SQL</button>
     <button onclick="openSQLEditor()" class="success">🔗 Open SQL Editor</button>
     <span class="copied" id="copied-004">✓ Copied!</span>
@@ -122,7 +220,7 @@
 
   <!-- Migration 005 -->
   <div class="migration">
-    <h3>Migration 005: Connection Status</h3>
+    <h3><span class="migration-number">5</span> Connection Status</h3>
     <p>Adds: IMAP/SMTP connection monitoring columns to mailboxes</p>
     <button onclick="copyMigration('005')">📋 Copy SQL</button>
     <button onclick="openSQLEditor()" class="success">🔗 Open SQL Editor</button>
@@ -131,11 +229,15 @@
 
   <div class="step">
     <h2>✅ After Running All Migrations</h2>
-    <p>Your app will have:</p>
+    <p>Your Email AI app will have:</p>
     <ul>
-      <li>✅ Mark as Spam feature working</li>
-      <li>✅ Spam Settings page persisting your settings</li>
-      <li>✅ Connection Status icons showing mailbox health</li>
+      <li>✅ Complete database schema (mailboxes, emails, drafts, settings)</li>
+      <li>✅ Spam detection with scoring</li>
+      <li>✅ Mark as Spam feature</li>
+      <li>✅ Spam Settings page with persistence</li>
+      <li>✅ Connection Status indicators</li>
+      <li>✅ Folder organization system</li>
+      <li>✅ Email threading support</li>
     </ul>
     <button onclick="window.location.href='https://email-ai-mu.vercel.app'" style="background: #10b981; margin-top: 10px;">
       🎉 Go to Your App
@@ -143,7 +245,248 @@
   </div>
 
   <script>
+    const allMigrations = `-- ============================================
+-- EMAIL AI - ALL MIGRATIONS (001-005)
+-- Run this entire file in Supabase SQL Editor
+-- Project: xecxfqdhqjiwngblekgf
+-- ============================================
+
+-- MIGRATION 001: Initial Schema
+-- ============================================
+create extension if not exists pgcrypto;
+
+create table if not exists mailboxes (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  encrypted_password text not null,
+  ai_enabled boolean not null default true,
+  prompt text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists emails (
+  id uuid primary key default gen_random_uuid(),
+  mailbox_id uuid not null references mailboxes(id) on delete cascade,
+  message_id text not null,
+  thread_id text,
+  from_email text,
+  from_name text,
+  subject text,
+  body text,
+  received_at timestamptz,
+  processed boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (mailbox_id, message_id)
+);
+
+create table if not exists drafts (
+  id uuid primary key default gen_random_uuid(),
+  email_id uuid not null references emails(id) on delete cascade,
+  mailbox_id uuid not null references mailboxes(id) on delete cascade,
+  draft_body text not null,
+  status text not null default 'draft' check (status in ('draft', 'sent', 'deleted')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (email_id)
+);
+
+create table if not exists settings (
+  id uuid primary key default gen_random_uuid(),
+  openrouter_model text not null default 'openai/gpt-5.6-luna',
+  created_at timestamptz not null default now()
+);
+
+insert into settings (openrouter_model)
+select 'openai/gpt-5.6-luna'
+where not exists (select 1 from settings);
+
+alter table mailboxes enable row level security;
+alter table emails enable row level security;
+alter table drafts enable row level security;
+alter table settings enable row level security;
+
+-- MIGRATION 002: Enhancements
+-- ============================================
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS spam_score INTEGER DEFAULT 0 CHECK (spam_score >= 0 AND spam_score <= 100);
+ALTER TABLE mailboxes ADD COLUMN IF NOT EXISTS reply_language TEXT DEFAULT 'en';
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS in_reply_to TEXT;
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS references TEXT;
+ALTER TABLE drafts ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_emails_spam_score ON emails(spam_score DESC);
+CREATE INDEX IF NOT EXISTS idx_emails_thread_id ON emails(thread_id);
+CREATE INDEX IF NOT EXISTS idx_emails_in_reply_to ON emails(in_reply_to);
+
+-- MIGRATION 003: Folders & Spam Learning
+-- ============================================
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'inbox';
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS is_spam BOOLEAN DEFAULT FALSE;
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS folders (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  mailbox_id TEXT NOT NULL REFERENCES mailboxes(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  color TEXT DEFAULT 'blue',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(mailbox_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS email_folders (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  email_id TEXT NOT NULL REFERENCES emails(id) ON DELETE CASCADE,
+  folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+  assigned_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(email_id, folder_id)
+);
+
+CREATE TABLE IF NOT EXISTS spam_training (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  email_id TEXT NOT NULL REFERENCES emails(id) ON DELETE CASCADE,
+  is_spam BOOLEAN NOT NULL,
+  marked_by TEXT DEFAULT 'user',
+  marked_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_emails_folder ON emails(folder);
+CREATE INDEX IF NOT EXISTS idx_emails_is_spam ON emails(is_spam);
+CREATE INDEX IF NOT EXISTS idx_emails_is_archived ON emails(is_archived);
+CREATE INDEX IF NOT EXISTS idx_email_folders_email_id ON email_folders(email_id);
+CREATE INDEX IF NOT EXISTS idx_email_folders_folder_id ON email_folders(folder_id);
+CREATE INDEX IF NOT EXISTS idx_folders_mailbox_id ON folders(mailbox_id);
+CREATE INDEX IF NOT EXISTS idx_spam_training_email_id ON spam_training(email_id);
+
+INSERT INTO folders (mailbox_id, name, color)
+SELECT id, 'Order Complete', 'green' FROM mailboxes
+WHERE NOT EXISTS (SELECT 1 FROM folders WHERE mailbox_id = mailboxes.id AND name = 'Order Complete')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO folders (mailbox_id, name, color)
+SELECT id, 'Cancellation Request', 'red' FROM mailboxes
+WHERE NOT EXISTS (SELECT 1 FROM folders WHERE mailbox_id = mailboxes.id AND name = 'Cancellation Request')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO folders (mailbox_id, name, color)
+SELECT id, 'Support', 'blue' FROM mailboxes
+WHERE NOT EXISTS (SELECT 1 FROM folders WHERE mailbox_id = mailboxes.id AND name = 'Support')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO folders (mailbox_id, name, color)
+SELECT id, 'Refund', 'orange' FROM mailboxes
+WHERE NOT EXISTS (SELECT 1 FROM folders WHERE mailbox_id = mailboxes.id AND name = 'Refund')
+ON CONFLICT DO NOTHING;
+
+-- MIGRATION 004: Spam Settings
+-- ============================================
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS spam_threshold INTEGER DEFAULT 80 CHECK (spam_threshold >= 0 AND spam_threshold <= 100);
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS spam_keywords TEXT DEFAULT '';
+
+COMMENT ON COLUMN settings.spam_threshold IS 'Spam score threshold (0-100). Emails with score >= this value will be auto-hidden. Default: 80';
+COMMENT ON COLUMN settings.spam_keywords IS 'Custom spam keywords, one per line. Used to calculate spam scores.';
+
+-- MIGRATION 005: Connection Status
+-- ============================================
+ALTER TABLE mailboxes
+  ADD COLUMN IF NOT EXISTS last_imap_check TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS last_smtp_check TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS imap_status TEXT CHECK (imap_status IN ('online', 'offline', 'unknown')),
+  ADD COLUMN IF NOT EXISTS smtp_status TEXT CHECK (smtp_status IN ('online', 'offline', 'unknown')),
+  ADD COLUMN IF NOT EXISTS last_imap_error TEXT,
+  ADD COLUMN IF NOT EXISTS last_smtp_error TEXT;
+
+UPDATE mailboxes
+SET 
+  imap_status = COALESCE(imap_status, 'unknown'),
+  smtp_status = COALESCE(smtp_status, 'unknown')
+WHERE imap_status IS NULL OR smtp_status IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_mailboxes_imap_status ON mailboxes(imap_status);
+CREATE INDEX IF NOT EXISTS idx_mailboxes_smtp_status ON mailboxes(smtp_status);
+CREATE INDEX IF NOT EXISTS idx_mailboxes_last_imap_check ON mailboxes(last_imap_check);
+CREATE INDEX IF NOT EXISTS idx_mailboxes_last_smtp_check ON mailboxes(last_smtp_check);
+
+-- ============================================
+-- ✅ DONE! All 5 migrations applied.
+-- ============================================`;
+
     const migrations = {
+      '001': `create extension if not exists pgcrypto;
+
+create table if not exists mailboxes (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  encrypted_password text not null,
+  ai_enabled boolean not null default true,
+  prompt text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists emails (
+  id uuid primary key default gen_random_uuid(),
+  mailbox_id uuid not null references mailboxes(id) on delete cascade,
+  message_id text not null,
+  thread_id text,
+  from_email text,
+  from_name text,
+  subject text,
+  body text,
+  received_at timestamptz,
+  processed boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (mailbox_id, message_id)
+);
+
+create table if not exists drafts (
+  id uuid primary key default gen_random_uuid(),
+  email_id uuid not null references emails(id) on delete cascade,
+  mailbox_id uuid not null references mailboxes(id) on delete cascade,
+  draft_body text not null,
+  status text not null default 'draft' check (status in ('draft', 'sent', 'deleted')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (email_id)
+);
+
+create table if not exists settings (
+  id uuid primary key default gen_random_uuid(),
+  openrouter_model text not null default 'openai/gpt-5.6-luna',
+  created_at timestamptz not null default now()
+);
+
+insert into settings (openrouter_model)
+select 'openai/gpt-5.6-luna'
+where not exists (select 1 from settings);
+
+alter table mailboxes enable row level security;
+alter table emails enable row level security;
+alter table drafts enable row level security;
+alter table settings enable row level security;
+
+-- This v1 has no browser auth. All application access uses the service role server-side.`,
+
+      '002': `-- Add spam score, language, and conversation tracking
+-- Migration: 002_enhancements.sql
+
+-- Add spam_score to emails table
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS spam_score INTEGER DEFAULT 0 CHECK (spam_score >= 0 AND spam_score <= 100);
+
+-- Add reply_language to mailboxes table
+ALTER TABLE mailboxes ADD COLUMN IF NOT EXISTS reply_language TEXT DEFAULT 'en';
+
+-- Add In-Reply-To and References for threading
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS in_reply_to TEXT;
+ALTER TABLE emails ADD COLUMN IF NOT EXISTS references TEXT;
+
+-- Add sent_at timestamp to drafts
+ALTER TABLE drafts ADD COLUMN IF NOT EXISTS sent_at TIMESTAMPTZ;
+
+-- Add index for faster spam filtering
+CREATE INDEX IF NOT EXISTS idx_emails_spam_score ON emails(spam_score DESC);
+
+-- Add index for thread lookup
+CREATE INDEX IF NOT EXISTS idx_emails_thread_id ON emails(thread_id);
+CREATE INDEX IF NOT EXISTS idx_emails_in_reply_to ON emails(in_reply_to);`,
+
       '003': `-- Email folders and spam learning system
 -- Migration: 003_folders_and_spam_learning.sql
 
@@ -214,26 +557,16 @@ SELECT id, 'Refund', 'orange' FROM mailboxes
 WHERE NOT EXISTS (SELECT 1 FROM folders WHERE mailbox_id = mailboxes.id AND name = 'Refund')
 ON CONFLICT DO NOTHING;`,
 
-      '004': `-- Spam Detection Settings
+      '004': `-- Add spam settings to settings table
 -- Migration: 004_spam_settings.sql
 
--- Add spam settings columns to settings table
-ALTER TABLE settings 
-  ADD COLUMN IF NOT EXISTS spam_threshold INTEGER DEFAULT 80,
-  ADD COLUMN IF NOT EXISTS spam_keywords TEXT DEFAULT '';
+-- Add spam_threshold and spam_keywords to settings
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS spam_threshold INTEGER DEFAULT 80 CHECK (spam_threshold >= 0 AND spam_threshold <= 100);
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS spam_keywords TEXT DEFAULT '';
 
--- Add constraint to ensure valid threshold range
-ALTER TABLE settings 
-  ADD CONSTRAINT IF NOT EXISTS spam_threshold_range 
-  CHECK (spam_threshold >= 0 AND spam_threshold <= 100);
-
--- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_settings_spam ON settings(spam_threshold);
-
--- Set default values for existing rows
-UPDATE settings 
-SET spam_threshold = 80, spam_keywords = ''
-WHERE spam_threshold IS NULL;`,
+-- Add comment for clarity
+COMMENT ON COLUMN settings.spam_threshold IS 'Spam score threshold (0-100). Emails with score >= this value will be auto-hidden. Default: 80';
+COMMENT ON COLUMN settings.spam_keywords IS 'Custom spam keywords, one per line. Used to calculate spam scores.';`,
 
       '005': `-- Connection Status Monitoring
 -- Migration: 005_connection_status.sql
@@ -261,6 +594,14 @@ CREATE INDEX IF NOT EXISTS idx_mailboxes_last_imap_check ON mailboxes(last_imap_
 CREATE INDEX IF NOT EXISTS idx_mailboxes_last_smtp_check ON mailboxes(last_smtp_check);`
     };
 
+    function copyAllMigrations() {
+      navigator.clipboard.writeText(allMigrations).then(() => {
+        const el = document.getElementById('copied-all');
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 3000);
+      });
+    }
+
     function copyMigration(id) {
       const sql = migrations[id];
       navigator.clipboard.writeText(sql).then(() => {
@@ -271,7 +612,7 @@ CREATE INDEX IF NOT EXISTS idx_mailboxes_last_smtp_check ON mailboxes(last_smtp_
     }
 
     function openSQLEditor() {
-      window.open('https://supabase.com/dashboard/project/xecxfqdhqjiwngblekgf/editor', '_blank');
+      window.open('https://supabase.com/dashboard/project/xecxfqdhqjiwngblekgf/sql/new', '_blank');
     }
   </script>
 </body>
