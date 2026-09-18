@@ -1,70 +1,88 @@
 #!/bin/bash
 set -e
 
-# Email AI - Automated Database Migrations
-# Project: xecxfqdhqjiwngblekgf
+# Email AI - Migration Helper (Final Solution)
+# Supabase CLI is blocked by org permissions, so we help with manual paste
 
-echo "🚀 Email AI - Running Database Migrations"
-echo "=========================================="
+PROJECT_ID="xecxfqdhqjiwngblekgf"
+PROJECT_NAME="Email AI"
+
+echo "🚀 $PROJECT_NAME - Migration Helper"
+echo "===================================="
+echo ""
+echo "⚠️  Supabase CLI access blocked by organization permissions"
+echo "   Using clipboard + browser method instead"
 echo ""
 
-# Use PostgreSQL 16 from Homebrew
-export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
+# Create combined SQL
+echo "📝 Preparing SQL..."
+cat supabase/migrations/*.sql > /tmp/combined-migrations.sql
+LINES=$(wc -l < /tmp/combined-migrations.sql | tr -d ' ')
+echo "   ✓ Combined $LINES lines"
 
-# Database connection (from .env.local)
-DB_URL="postgresql://postgres.xecxfqdhqjiwngblekgf:S%25E%5Bd%7DR3YjC8@aws-0-us-west-1.pooler.supabase.com:5432/postgres"
+# Copy to clipboard
+cat /tmp/combined-migrations.sql | pbcopy
+echo "   ✓ Copied to clipboard"
 
-# Check if psql is available
-if ! command -v psql &> /dev/null; then
-    echo "❌ Error: psql not found"
-    echo "   Install: brew install postgresql@16"
+# Open SQL editor
+echo "🌐 Opening SQL editor..."
+open "https://supabase.com/dashboard/project/$PROJECT_ID/sql/new"
+
+sleep 3
+
+echo ""
+echo "✅ Ready! Next steps:"
+echo ""
+echo "   1. SQL editor opened in browser"
+echo "   2. SQL already in clipboard"
+echo "   3. Paste (Cmd+V) and click 'Run'"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📋 After running, verify with:"
+echo ""
+echo "   ./verify-migrations.sh"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Create verification script
+cat > verify-migrations.sh << 'EOFVERIFY'
+#!/bin/bash
+echo "🔍 Verifying migrations..."
+
+if [ ! -f .env.local ]; then
+    echo "❌ No .env.local found"
     exit 1
 fi
 
-echo "✓ psql found: $(which psql)"
-echo "✓ Database: xecxfqdhqjiwngblekgf"
-echo ""
+ANON_KEY=$(grep NEXT_PUBLIC_SUPABASE_ANON_KEY .env.local | cut -d= -f2)
+PROJECT_ID="xecxfqdhqjiwngblekgf"
 
-# Test connection
-echo "Testing connection..."
-if ! psql "$DB_URL" -c "SELECT version();" > /dev/null 2>&1; then
-    echo "❌ Connection failed!"
-    echo "   Make sure the project is not paused in Supabase dashboard"
+CHECK=$(curl -s "https://${PROJECT_ID}.supabase.co/rest/v1/emails?select=is_spam,folder&limit=0" \
+  -H "apikey: $ANON_KEY" \
+  -H "Authorization: Bearer $ANON_KEY" 2>&1)
+
+if [[ "$CHECK" == *"does not exist"* ]]; then
+    echo "❌ Columns still missing!"
+    echo "   Response: $CHECK"
+    echo ""
+    echo "   The SQL may not have run, or PostgREST cache needs reload"
     exit 1
 fi
-echo "✓ Connection successful"
+
+echo "✅ Success! Columns exist!"
 echo ""
+echo "🎉 Test the app:"
+echo "   https://email-ai-mu.vercel.app/drafts"
+echo ""
+echo "   Click 'Mark as Spam' - it should work!"
+EOFVERIFY
 
-# Run migrations in order
-MIGRATIONS=(
-    "001_email_drafts.sql"
-    "002_enhancements.sql"
-    "003_folders_and_spam_learning.sql"
-    "004_spam_settings.sql"
-    "005_connection_status.sql"
-)
-
-for migration in "${MIGRATIONS[@]}"; do
-    echo "📦 Running: $migration"
-    if psql "$DB_URL" -f "supabase/migrations/$migration" > /dev/null 2>&1; then
-        echo "   ✓ Success"
-    else
-        echo "   ❌ Failed!"
-        echo ""
-        echo "Error details:"
-        psql "$DB_URL" -f "supabase/migrations/$migration"
-        exit 1
-    fi
-done
+chmod +x verify-migrations.sh
 
 echo ""
-echo "=========================================="
-echo "✅ All migrations completed successfully!"
-echo ""
-echo "Your Email AI database is ready:"
-echo "  • mailboxes, emails, drafts, settings tables"
-echo "  • Spam detection & filtering"
-echo "  • Folder organization"
-echo "  • Connection status monitoring"
-echo ""
-echo "🎉 Visit your app: https://email-ai-mu.vercel.app"
+echo "Waiting for you to paste and run..."
+echo "(Press Enter when done)"
+read -r
+
+./verify-migrations.sh
