@@ -17,6 +17,21 @@ export default function SpamPage() {
   const [spamEmails, setSpamEmails] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const checkNow = async () => {
+    try {
+      await fetch("/api/cron/check-mail", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}`
+        }
+      });
+      await load();
+    } catch (error) {
+      console.error("Check failed:", error);
+      throw error;
+    }
+  };
+
   const load = async () => {
     try {
       setLoading(true);
@@ -79,7 +94,7 @@ export default function SpamPage() {
             Spam
           </a>
         </nav>
-        <EmailCheckCountdown />
+        <EmailCheckCountdown onCheckNow={checkNow} />
       </header>
       <section className="content">
         <div className="page-heading">

@@ -1,66 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export function EmailCheckCountdown() {
-  const [timeLeft, setTimeLeft] = useState<number>(0);
+interface EmailCheckCountdownProps {
+  onCheckNow?: () => Promise<void>;
+}
+
+export function EmailCheckCountdown({ onCheckNow }: EmailCheckCountdownProps) {
+  const [checking, setChecking] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
-  // Calculate next check time (rounds to next 10-minute mark)
-  const getNextCheckTime = () => {
-    const now = new Date();
-    const minutes = now.getMinutes();
-    const nextCheckMinute = Math.ceil(minutes / 10) * 10;
-    const nextCheck = new Date(now);
+  const handleCheckNow = async () => {
+    if (!onCheckNow || checking) return;
     
-    if (nextCheckMinute >= 60) {
-      nextCheck.setHours(nextCheck.getHours() + 1);
-      nextCheck.setMinutes(0);
-    } else {
-      nextCheck.setMinutes(nextCheckMinute);
+    setChecking(true);
+    try {
+      await onCheckNow();
+      setLastCheck(new Date());
+      localStorage.setItem('lastEmailCheck', new Date().toISOString());
+    } catch (error) {
+      console.error('Check failed:', error);
+    } finally {
+      setChecking(false);
     }
-    nextCheck.setSeconds(0);
-    nextCheck.setMilliseconds(0);
-    
-    return nextCheck;
   };
-
-  useEffect(() => {
-    const updateCountdown = () => {
-      const now = new Date();
-      const nextCheck = getNextCheckTime();
-      const diff = nextCheck.getTime() - now.getTime();
-      setTimeLeft(Math.max(0, Math.floor(diff / 1000)));
-    };
-
-    // Check for new emails indicator in localStorage
-    const checkLastEmailCheck = () => {
-      const stored = localStorage.getItem('lastEmailCheck');
-      if (stored) {
-        setLastCheck(new Date(stored));
-      }
-    };
-
-    updateCountdown();
-    checkLastEmailCheck();
-    
-    const interval = setInterval(() => {
-      updateCountdown();
-      checkLastEmailCheck();
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const timeSinceLastCheck = lastCheck 
-    ? Math.floor((Date.now() - lastCheck.getTime()) / 1000)
-    : null;
 
   return (
     <div 
@@ -72,35 +35,57 @@ export function EmailCheckCountdown() {
         color: '#6b7280'
       }}
     >
-      {timeSinceLastCheck !== null && timeSinceLastCheck < 60 && (
+      <button
+        onClick={handleCheckNow}
+        disabled={checking}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          background: checking ? '#e5e7eb' : '#3b82f6',
+          color: checking ? '#9ca3af' : 'white',
+          border: 'none',
+          padding: '0.5rem 1rem',
+          borderRadius: '0.375rem',
+          cursor: checking ? 'not-allowed' : 'pointer',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          transition: 'all 0.2s'
+        }}
+      >
+        {checking ? (
+          <>
+            <span style={{ animation: 'spin 1s linear infinite' }}>⟳</span>
+            Checking...
+          </>
+        ) : (
+          <>
+            📬 Check Now
+          </>
+        )}
+      </button>
+      
+      {lastCheck && (
         <span 
           style={{
             color: '#10b981',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.25rem',
+            fontSize: '0.85rem'
           }}
         >
-          <span style={{ fontSize: '1.2rem' }}>✓</span>
-          Checked {timeSinceLastCheck}s ago
+          <span>✓</span>
+          Just checked
         </span>
       )}
-      <span 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}
-      >
-        <span>📬</span>
-        Next check in{' '}
-        <strong style={{ 
-          color: timeLeft < 60 ? '#ef4444' : '#3b82f6',
-          fontVariant: 'tabular-nums'
-        }}>
-          {formatTime(timeLeft)}
-        </strong>
-      </span>
+      
+      <style jsx>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

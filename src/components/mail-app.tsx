@@ -43,6 +43,23 @@ export function MailApp() {
     setMessageType(type);
   };
 
+  const checkNow = async () => {
+    try {
+      showNotification("Checking for new emails...", "info");
+      const response = await fetch("/api/cron/check-mail", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}`
+        }
+      });
+      if (!response.ok) throw new Error("Check failed");
+      showNotification("Email check complete!", "success");
+      await load();
+    } catch (err) {
+      showNotification("Unable to check emails manually", "error");
+    }
+  };
+
   const load = async () => {
     try {
       setLoading(true);
@@ -293,7 +310,7 @@ export function MailApp() {
             }}>{spamCount}</span>}
           </a>
         </nav>
-        <EmailCheckCountdown />
+        <EmailCheckCountdown onCheckNow={checkNow} />
       </header>
       <section className="content">
         <div className="page-heading">
