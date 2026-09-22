@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { Draft } from "@/lib/mail-types";
+import { EmailCheckCountdown } from "@/components/email-check-countdown";
 
 const formatDate = (value: string | null) =>
   value
@@ -78,6 +79,7 @@ export default function SpamPage() {
             Spam
           </a>
         </nav>
+        <EmailCheckCountdown />
       </header>
       <section className="content">
         <div className="page-heading">

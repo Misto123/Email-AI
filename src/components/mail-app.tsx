@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import type { Draft, PendingEmail, Mailbox } from "@/lib/mail-types";
 import { StickyNotification } from "./sticky-notification";
+import { EmailCheckCountdown } from "./email-check-countdown";
 
 const formatDate = (value: string | null) =>
   value
@@ -292,6 +293,7 @@ export function MailApp() {
             }}>{spamCount}</span>}
           </a>
         </nav>
+        <EmailCheckCountdown />
       </header>
       <section className="content">
         <div className="page-heading">
