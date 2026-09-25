@@ -86,7 +86,7 @@ export async function GET(request: Request) {
             body: parsed.body, 
             received_at: receivedAt, 
             spam_score: spamScore,
-            processed: mailbox.ai_enabled
+            processed: false // Always false - user generates drafts manually
           }).select("id,from_email,from_name,subject,body").single();
           
           if (saveError || !saved) {
