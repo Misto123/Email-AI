@@ -19,12 +19,10 @@ export default function SpamPage() {
 
   const checkNow = async () => {
     try {
-      await fetch("/api/cron/check-mail", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}`
-        }
+      const response = await fetch("/api/emails/check-now", {
+        method: "POST"
       });
+      if (!response.ok) throw new Error("Check failed");
       await load();
     } catch (error) {
       console.error("Check failed:", error);

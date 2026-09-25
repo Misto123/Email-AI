@@ -46,17 +46,16 @@ export function MailApp() {
   const checkNow = async () => {
     try {
       showNotification("Checking for new emails...", "info");
-      const response = await fetch("/api/cron/check-mail", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}`
-        }
+      const response = await fetch("/api/emails/check-now", {
+        method: "POST"
       });
       if (!response.ok) throw new Error("Check failed");
-      showNotification("Email check complete!", "success");
+      const data = await response.json();
+      const total = data.results?.reduce((sum: number, r: { imported: number }) => sum + r.imported, 0) || 0;
+      showNotification(`Email check complete! Found ${total} new emails.`, "success");
       await load();
     } catch (err) {
-      showNotification("Unable to check emails manually", "error");
+      showNotification("Unable to check emails", "error");
     }
   };
 
