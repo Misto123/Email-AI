@@ -4,17 +4,16 @@ import { NextResponse } from "next/server";
  * Public endpoint for manual email checking
  * Calls the protected cron endpoint internally
  */
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
       return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 500 });
     }
 
-    // Call the cron endpoint internally with the secret
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    // Get the base URL from the request
+    const url = new URL(request.url);
+    const baseUrl = `${url.protocol}//${url.host}`;
 
     const response = await fetch(`${baseUrl}/api/cron/check-mail`, {
       method: "GET",
