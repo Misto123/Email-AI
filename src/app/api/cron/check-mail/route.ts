@@ -56,10 +56,15 @@ export async function GET(request: Request) {
       const lock = await client.getMailboxLock("INBOX");
       try {
         const messages = await client.fetchAll("1:*", { source: true, envelope: true, internalDate: true }, { uid: false });
+        console.log(`[${mailbox.email}] Found ${messages.length} total messages in INBOX`);
         for (const message of messages) {
           const parsed = textFromSource(message.source as Buffer);
           const { data: existing } = await supabaseAdmin.from("emails").select("id").eq("mailbox_id", mailbox.id).eq("message_id", parsed.messageId).maybeSingle();
-          if (existing) continue;
+          if (existing) {
+            console.log(`[${mailbox.email}] Skipping existing: ${parsed.messageId}`);
+            continue;
+          }
+          console.log(`[${mailbox.email}] Processing new email: ${parsed.messageId} from ${parsed.from}`);
           const sender = parseFrom(parsed.from);
           const receivedAt = message.internalDate instanceof Date ? message.internalDate.toISOString() : message.internalDate || new Date().toISOString();
           
@@ -84,7 +89,12 @@ export async function GET(request: Request) {
             processed: mailbox.ai_enabled
           }).select("id,from_email,from_name,subject,body").single();
           
-          if (saveError || !saved) throw saveError || new Error("Could not save email");
+          if (saveError || !saved) {
+            console.error(`[${mailbox.email}] Save error:`, saveError);
+            throw saveError || new Error("Could not save email");
+          }
+          
+          console.log(`[${mailbox.email}] Saved email ${parsed.messageId} (spam: ${spamScore})`);
           
           // DON'T auto-generate AI drafts anymore - user will click "Generate Reply" button
           // Just import emails and let user generate on-demand
