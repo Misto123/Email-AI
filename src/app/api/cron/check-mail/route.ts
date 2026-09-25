@@ -80,6 +80,7 @@ export async function GET(request: Request) {
             subject: parsed.subject, 
             body: parsed.body, 
             received_at: receivedAt, 
+            spam_score: spamScore,
             processed: mailbox.ai_enabled
           }).select("id,from_email,from_name,subject,body").single();
           
