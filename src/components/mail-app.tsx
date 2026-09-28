@@ -317,16 +317,16 @@ export function MailApp() {
     if (sortBy === "date") {
       const dateA = new Date(a.received_at || 0).getTime();
       const dateB = new Date(b.received_at || 0).getTime();
-      compareValue = dateB - dateA; // Newer first by default
+      compareValue = dateA - dateB; // Older first (asc default), will be flipped for desc
     } else if (sortBy === "sender") {
-      compareValue = (a.from_email || "").localeCompare(b.from_email || "");
+      compareValue = (a.from_email || "").localeCompare(b.from_email || ""); // A->Z (asc default)
     } else if (sortBy === "subject") {
-      compareValue = (a.subject || "").localeCompare(b.subject || "");
+      compareValue = (a.subject || "").localeCompare(b.subject || ""); // A->Z (asc default)
     } else if (sortBy === "spam") {
-      compareValue = (b.spam_score || 0) - (a.spam_score || 0); // Higher spam first by default
+      compareValue = (a.spam_score || 0) - (b.spam_score || 0); // Lower spam first (asc default)
     }
     
-    return sortOrder === "asc" ? compareValue : -compareValue;
+    return sortOrder === "desc" ? -compareValue : compareValue;
   });
 
   return (
@@ -1316,6 +1316,29 @@ export function MailApp() {
 
             {/* Email Content */}
             <div style={{ padding: "1.5rem" }}>
+              {/* Draft Preview - MOVED TO TOP */}
+              {detailViewDraft && (
+                <div style={{ marginBottom: "1.5rem" }}>
+                  <strong style={{ display: "block", color: "#059669", fontSize: "1.1rem", marginBottom: "0.75rem" }}>
+                    ✅ AI Generated Reply:
+                  </strong>
+                  <div style={{
+                    padding: "1.25rem",
+                    background: "#f0fdf4",
+                    border: "2px solid #86efac",
+                    borderRadius: "0.5rem",
+                    whiteSpace: "pre-wrap",
+                    fontSize: "0.95rem",
+                    lineHeight: "1.6"
+                  }}>
+                    {detailViewDraft}
+                  </div>
+                  <p style={{ fontSize: "0.9rem", color: "#6b7280", marginTop: "0.75rem", fontStyle: "italic" }}>
+                    💡 Close this dialog to edit and send from the main inbox view.
+                  </p>
+                </div>
+              )}
+
               {(() => {
                 const parsed = parseContactFormEmail(detailViewEmail.body || "");
                 
@@ -1498,29 +1521,6 @@ export function MailApp() {
                   📁 Archive
                 </button>
               </div>
-
-              {/* Draft Preview */}
-              {detailViewDraft && (
-                <div>
-                  <strong style={{ display: "block", color: "#059669", fontSize: "1rem", marginBottom: "0.5rem" }}>
-                    ✅ AI Generated Reply:
-                  </strong>
-                  <div style={{
-                    padding: "1rem",
-                    background: "#f0fdf4",
-                    border: "1px solid #86efac",
-                    borderRadius: "0.5rem",
-                    whiteSpace: "pre-wrap",
-                    fontSize: "0.95rem",
-                    lineHeight: "1.6"
-                  }}>
-                    {detailViewDraft}
-                  </div>
-                  <p style={{ fontSize: "0.9rem", color: "#6b7280", marginTop: "0.5rem" }}>
-                    Close this dialog to edit and send from the main inbox view.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -221,9 +221,9 @@ export async function generateReply(email: Pick<EmailRecord, "from_email" | "fro
     
   } catch (error) {
     // Fallback to DeepSeek if OpenRouter fails for ANY reason
-    if (error instanceof Error && error.message.includes("FALLBACK_TO_DEEPSEEK")) {
-      console.log("Using DeepSeek fallback...");
-      
+    console.log("OpenRouter failed, using DeepSeek fallback...");
+    
+    try {
       const deepseekResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
         method: "POST",
         headers: { 
@@ -238,7 +238,8 @@ export async function generateReply(email: Pick<EmailRecord, "from_email" | "fro
       });
       
       if (!deepseekResponse.ok) {
-        throw new Error(`DeepSeek fallback also failed: ${await deepseekResponse.text()}`);
+        const errorText = await deepseekResponse.text();
+        throw new Error(`DeepSeek fallback also failed: ${errorText}`);
       }
       
       const deepseekData = (await deepseekResponse.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -246,8 +247,10 @@ export async function generateReply(email: Pick<EmailRecord, "from_email" | "fro
       if (!deepseekReply) throw new Error("DeepSeek returned an empty draft");
       
       return deepseekReply;
+    } catch (fallbackError) {
+      // If both fail, throw the original OpenRouter error
+      console.error("Both OpenRouter and DeepSeek failed:", error, fallbackError);
+      throw error;
     }
-    
-    throw error;
   }
 }
