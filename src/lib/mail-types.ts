@@ -73,6 +73,7 @@ export interface PendingEmail {
   body: string | null;
   received_at: string | null;
   spam_score?: number;
+  is_spam?: boolean;
   mailboxes: Pick<Mailbox, "email">;
 }
 
