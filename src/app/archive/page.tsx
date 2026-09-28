@@ -127,7 +127,7 @@ export default function ArchivePage() {
               <option value="all">All Mailboxes ({archivedEmails.length})</option>
               {mailboxes.map((mailbox) => (
                 <option key={mailbox.id} value={mailbox.id}>
-                  {mailbox.email} ({archivedEmails.filter(e => e.mailboxes.id === mailbox.id).length})
+                  {mailbox.email} ({archivedEmails.filter(e => e.mailbox_id === mailbox.id).length})
                 </option>
               ))}
             </select>
