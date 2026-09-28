@@ -12,7 +12,7 @@ export async function POST(
     // Get the email
     const { data: email, error: emailError } = await supabaseAdmin
       .from("emails")
-      .select("id,from_email,from_name,subject,body,mailbox_id,mailboxes(prompt,reply_language)")
+      .select("id,from_email,from_name,subject,body,mailbox_id,mailboxes(prompt,reply_language,knowledge_base)")
       .eq("id", id)
       .single();
 
@@ -37,9 +37,11 @@ export async function POST(
       );
     }
 
-    // Generate AI reply
-    const mailboxPrompt = (email.mailboxes as { prompt?: string; reply_language?: string })?.prompt || null;
-    const language = (email.mailboxes as { prompt?: string; reply_language?: string })?.reply_language || "en";
+    // Generate AI reply with knowledge base
+    const mailboxData = email.mailboxes as { prompt?: string; reply_language?: string; knowledge_base?: any };
+    const mailboxPrompt = mailboxData?.prompt || null;
+    const language = mailboxData?.reply_language || "en";
+    const knowledgeBase = mailboxData?.knowledge_base || null;
     
     const draftBody = await generateReply(
       {
@@ -49,7 +51,9 @@ export async function POST(
         body: email.body,
       },
       mailboxPrompt,
-      language
+      language,
+      email.mailbox_id,
+      knowledgeBase
     );
 
     // Create draft

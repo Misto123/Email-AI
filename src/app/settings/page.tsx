@@ -86,14 +86,37 @@ export default function SettingsPage() {
         {/* AI Model Settings */}
         <div className="settings-card" style={{ marginBottom: "2rem" }}>
           <h2 style={{ marginBottom: "1rem", fontSize: "1.25rem" }}>AI Model</h2>
-          <label htmlFor="model">OpenRouter model</label>
+          
+          <div style={{ 
+            padding: "1rem", 
+            background: "#eff6ff", 
+            border: "1px solid #3b82f6",
+            borderRadius: "0.5rem",
+            marginBottom: "1rem"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+              <span style={{ fontSize: "1.5rem" }}>🤖</span>
+              <strong style={{ color: "#1e40af" }}>Currently Using:</strong>
+            </div>
+            <div style={{ fontSize: "1.1rem", color: "#1e40af", fontWeight: "600" }}>
+              {model === "deepseek/deepseek-r1" ? "DeepSeek R1 (via OpenRouter)" : model}
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "#6b7280", marginTop: "0.25rem" }}>
+              {model === "deepseek/deepseek-r1" && "✅ Cost-efficient reasoning model with automatic fallback to DeepSeek API"}
+            </div>
+          </div>
+          
+          <label htmlFor="model">OpenRouter model ID</label>
           <input
             id="model"
             value={model}
             onChange={(event) => setModel(event.target.value)}
           />
           <p className="help" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b7280" }}>
-            The API key is configured only on the server and is never shown here.
+            Popular models: <code style={{ background: "#f3f4f6", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>deepseek/deepseek-r1</code>, <code style={{ background: "#f3f4f6", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>anthropic/claude-3.5-sonnet</code>, <code style={{ background: "#f3f4f6", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>openai/gpt-4o</code>
+          </p>
+          <p className="help" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b7280" }}>
+            🔑 API keys are configured on the server (OPENROUTER_API_KEY, DEEPSEEK_API_KEY) and never shown here.
           </p>
         </div>
 

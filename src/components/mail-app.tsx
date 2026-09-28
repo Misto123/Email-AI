@@ -37,6 +37,11 @@ export function MailApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spamCount, setSpamCount] = useState(0);
+  const [openrouterCreditsLow, setOpenrouterCreditsLow] = useState(false);
+  const [sortBy, setSortBy] = useState<"date" | "sender" | "subject" | "spam">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [detailViewEmail, setDetailViewEmail] = useState<PendingEmail | null>(null);
+  const [detailViewDraft, setDetailViewDraft] = useState<string | null>(null);
 
   const showNotification = (msg: string, type: "success" | "error" | "info" | "warning" = "info") => {
     setMessage(msg);
@@ -228,6 +233,16 @@ export function MailApp() {
       
       if (!response.ok) {
         const data = await response.json();
+        
+        // Check for OpenRouter credit error
+        if (data.error && (data.error.includes("Insufficient credits") || data.error.includes("402"))) {
+          setOpenrouterCreditsLow(true);
+          showNotification("Using DeepSeek fallback (OpenRouter credits low)", "warning");
+          // Still reload to show the draft if it was generated via fallback
+          void load();
+          return;
+        }
+        
         throw new Error(data.error || "Failed to generate reply");
       }
       
@@ -282,9 +297,30 @@ export function MailApp() {
     ? drafts 
     : drafts.filter(d => d.mailbox_id === selectedMailbox);
   
-  const filteredPendingEmails = selectedMailbox === "all"
+  // Auto-hide spam emails (score >= 50) from pending list
+  let filteredPendingEmails = (selectedMailbox === "all"
     ? pendingEmails
-    : pendingEmails.filter(e => e.mailbox_id === selectedMailbox);
+    : pendingEmails.filter(e => e.mailbox_id === selectedMailbox))
+    .filter(e => (e.spam_score || 0) < 50); // Hide spam
+  
+  // Sort pending emails
+  filteredPendingEmails = [...filteredPendingEmails].sort((a, b) => {
+    let compareValue = 0;
+    
+    if (sortBy === "date") {
+      const dateA = new Date(a.received_at || 0).getTime();
+      const dateB = new Date(b.received_at || 0).getTime();
+      compareValue = dateB - dateA; // Newer first by default
+    } else if (sortBy === "sender") {
+      compareValue = (a.from_email || "").localeCompare(b.from_email || "");
+    } else if (sortBy === "subject") {
+      compareValue = (a.subject || "").localeCompare(b.subject || "");
+    } else if (sortBy === "spam") {
+      compareValue = (b.spam_score || 0) - (a.spam_score || 0); // Higher spam first by default
+    }
+    
+    return sortOrder === "asc" ? compareValue : -compareValue;
+  });
 
   return (
     <main className="mail-shell">
@@ -311,6 +347,52 @@ export function MailApp() {
         </nav>
         <EmailCheckCountdown onCheckNow={checkNow} />
       </header>
+      
+      {/* OpenRouter Credits Warning Banner */}
+      {openrouterCreditsLow && (
+        <div style={{
+          background: "#fef3c7",
+          borderBottom: "1px solid #f59e0b",
+          padding: "1rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span style={{ fontSize: "1.5rem" }}>⚠️</span>
+            <div>
+              <strong style={{ color: "#92400e" }}>OpenRouter credits low</strong>
+              <p style={{ margin: 0, fontSize: "0.9rem", color: "#78350f" }}>
+                Using DeepSeek as fallback. Add credits at{" "}
+                <a 
+                  href="https://openrouter.ai/settings/credits" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: "#92400e", textDecoration: "underline" }}
+                >
+                  openrouter.ai/settings/credits
+                </a>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setOpenrouterCreditsLow(false)}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "1.25rem",
+              color: "#92400e",
+              padding: "0.25rem"
+            }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      
       <section className="content">
         <div className="page-heading">
           <div>
@@ -324,6 +406,90 @@ export function MailApp() {
             {drafts.length} drafts · {pendingEmails.length} pending
           </span>
         </div>
+
+        {/* Connection Status Summary */}
+        {mailboxes.length > 0 && (
+          <div style={{ 
+            marginBottom: "1.5rem",
+            padding: "1rem",
+            background: "#f9fafb",
+            borderRadius: "0.75rem",
+            border: "1px solid #e5e7eb"
+          }}>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "space-between",
+              marginBottom: "0.75rem"
+            }}>
+              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "600", color: "#374151" }}>
+                📡 Mailbox Connections
+              </h3>
+              <a 
+                href="/mailboxes" 
+                style={{ 
+                  fontSize: "0.85rem", 
+                  color: "#3b82f6",
+                  textDecoration: "none"
+                }}
+              >
+                View all →
+              </a>
+            </div>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              {mailboxes.map((mailbox) => {
+                const imapOk = mailbox.imap_status === "online";
+                const smtpOk = mailbox.smtp_status === "online";
+                const allOk = imapOk && smtpOk;
+                
+                return (
+                  <div 
+                    key={mailbox.id}
+                    style={{
+                      flex: "1",
+                      minWidth: "250px",
+                      padding: "0.75rem",
+                      background: "white",
+                      borderRadius: "0.5rem",
+                      border: `2px solid ${allOk ? "#10b981" : "#fbbf24"}`
+                    }}
+                  >
+                    <div style={{ 
+                      fontWeight: "600", 
+                      fontSize: "0.9rem",
+                      marginBottom: "0.5rem",
+                      color: "#111827"
+                    }}>
+                      {mailbox.email}
+                    </div>
+                    <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem" }}>
+                      <span style={{ color: imapOk ? "#059669" : "#dc2626" }}>
+                        {imapOk ? "✅" : "❌"} IMAP
+                      </span>
+                      <span style={{ color: smtpOk ? "#059669" : "#dc2626" }}>
+                        {smtpOk ? "✅" : "❌"} SMTP
+                      </span>
+                    </div>
+                    {mailbox.last_imap_check && (
+                      <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" }}>
+                        Last check: {(() => {
+                          const date = new Date(mailbox.last_imap_check);
+                          const now = new Date();
+                          const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+                          if (diffMins < 1) return "just now";
+                          if (diffMins < 60) return `${diffMins}m ago`;
+                          const diffHours = Math.floor(diffMins / 60);
+                          if (diffHours < 24) return `${diffHours}h ago`;
+                          return `${Math.floor(diffHours / 24)}d ago`;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Mailbox Filter Dropdown */}
         {mailboxes.length > 1 && (
@@ -368,6 +534,83 @@ export function MailApp() {
             </select>
           </div>
         )}
+        
+        {/* Sort Controls */}
+        <div style={{ 
+          display: "flex", 
+          gap: "1rem", 
+          marginBottom: "1.5rem",
+          flexWrap: "wrap",
+          alignItems: "flex-end"
+        }}>
+          <div style={{ flex: "1", minWidth: "200px" }}>
+            <label 
+              htmlFor="sort-by" 
+              style={{ 
+                display: "block", 
+                marginBottom: "0.5rem", 
+                fontSize: "0.9rem", 
+                fontWeight: "600",
+                color: "#374151"
+              }}
+            >
+              Sort by:
+            </label>
+            <select
+              id="sort-by"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              style={{
+                padding: "0.75rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+                fontSize: "1rem",
+                width: "100%",
+                cursor: "pointer"
+              }}
+            >
+              <option value="date">Date</option>
+              <option value="sender">Sender</option>
+              <option value="subject">Subject</option>
+              <option value="spam">Spam Score</option>
+            </select>
+          </div>
+          
+          <div style={{ flex: "1", minWidth: "200px" }}>
+            <label 
+              htmlFor="sort-order" 
+              style={{ 
+                display: "block", 
+                marginBottom: "0.5rem", 
+                fontSize: "0.9rem", 
+                fontWeight: "600",
+                color: "#374151"
+              }}
+            >
+              Order:
+            </label>
+            <select
+              id="sort-order"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as any)}
+              style={{
+                padding: "0.75rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+                fontSize: "1rem",
+                width: "100%",
+                cursor: "pointer"
+              }}
+            >
+              <option value="desc">
+                {sortBy === "date" ? "Newest First" : sortBy === "spam" ? "Highest First" : "Z → A"}
+              </option>
+              <option value="asc">
+                {sortBy === "date" ? "Oldest First" : sortBy === "spam" ? "Lowest First" : "A → Z"}
+              </option>
+            </select>
+          </div>
+        </div>
 
         {loading && (
           <div
@@ -571,7 +814,7 @@ export function MailApp() {
                       </button>
                       <button
                         className="button"
-                        onClick={() => openSidebar(email.id)}
+                        onClick={() => setDetailViewEmail(email)}
                         style={{ background: "#3b82f6", color: "white" }}
                       >
                         📋 Details
@@ -872,6 +1115,180 @@ export function MailApp() {
             )}
           </aside>
         </>
+      )}
+
+      {/* Email Detail View Modal */}
+      {detailViewEmail && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: "1rem"
+        }}>
+          <div style={{
+            background: "white",
+            borderRadius: "0.75rem",
+            maxWidth: "800px",
+            width: "100%",
+            maxHeight: "90vh",
+            overflow: "auto",
+            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: "1.5rem",
+              borderBottom: "1px solid #e5e7eb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <h2 style={{ margin: 0, fontSize: "1.5rem" }}>Email Details</h2>
+              <button
+                onClick={() => {
+                  setDetailViewEmail(null);
+                  setDetailViewDraft(null);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  padding: "0.25rem"
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Email Content */}
+            <div style={{ padding: "1.5rem" }}>
+              {/* Spam Score */}
+              <div style={{
+                display: "inline-block",
+                padding: "0.5rem 1rem",
+                borderRadius: "0.5rem",
+                marginBottom: "1rem",
+                background: (detailViewEmail.spam_score || 0) >= 60 ? "#fee2e2" : (detailViewEmail.spam_score || 0) >= 40 ? "#fef3c7" : "#f0fdf4",
+                color: (detailViewEmail.spam_score || 0) >= 60 ? "#dc2626" : (detailViewEmail.spam_score || 0) >= 40 ? "#f59e0b" : "#059669",
+                fontWeight: "600"
+              }}>
+                Spam Score: {detailViewEmail.spam_score || 0}/100
+              </div>
+
+              {/* From */}
+              <div style={{ marginBottom: "1rem" }}>
+                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>From:</strong>
+                <div>{detailViewEmail.from_name || detailViewEmail.from_email || "Unknown"}</div>
+                {detailViewEmail.from_name && (
+                  <div style={{ fontSize: "0.9rem", color: "#6b7280" }}>{detailViewEmail.from_email}</div>
+                )}
+              </div>
+
+              {/* To */}
+              <div style={{ marginBottom: "1rem" }}>
+                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>To:</strong>
+                <div>{detailViewEmail.mailboxes.email}</div>
+              </div>
+
+              {/* Subject */}
+              <div style={{ marginBottom: "1rem" }}>
+                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Subject:</strong>
+                <div>{detailViewEmail.subject || "(No subject)"}</div>
+              </div>
+
+              {/* Date */}
+              <div style={{ marginBottom: "1rem" }}>
+                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Date:</strong>
+                <div>{formatDate(detailViewEmail.received_at)}</div>
+              </div>
+
+              {/* Body */}
+              <div style={{ marginBottom: "1.5rem" }}>
+                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.5rem" }}>Full Message:</strong>
+                <div style={{
+                  padding: "1rem",
+                  background: "#f9fafb",
+                  borderRadius: "0.5rem",
+                  whiteSpace: "pre-wrap",
+                  fontSize: "0.95rem",
+                  lineHeight: "1.6",
+                  maxHeight: "500px",
+                  overflow: "auto",
+                  border: "1px solid #e5e7eb"
+                }}>
+                  {detailViewEmail.body || "(No content)"}
+                </div>
+                <div style={{ fontSize: "0.8rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                  {detailViewEmail.body ? `${detailViewEmail.body.length} characters` : "Empty email body"}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem" }}>
+                <button
+                  className="button primary"
+                  onClick={async () => {
+                    await generateReply(detailViewEmail.id);
+                    // Fetch the generated draft
+                    const draftResponse = await fetch("/api/drafts");
+                    if (draftResponse.ok) {
+                      const drafts = await draftResponse.json();
+                      const draft = drafts.find((d: Draft) => d.email_id === detailViewEmail.id);
+                      if (draft) {
+                        setDetailViewDraft(draft.draft_body);
+                      }
+                    }
+                  }}
+                  disabled={generatingFor === detailViewEmail.id}
+                  style={{
+                    background: generatingFor === detailViewEmail.id ? "#9ca3af" : "#10b981",
+                    cursor: generatingFor === detailViewEmail.id ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {generatingFor === detailViewEmail.id ? "⏳ Generating..." : "✨ Generate AI Reply"}
+                </button>
+                <button
+                  className="button"
+                  onClick={() => void markAsSpam(detailViewEmail.id, "")}
+                  style={{ background: "#f59e0b", color: "white" }}
+                >
+                  🚩 Mark as Spam
+                </button>
+              </div>
+
+              {/* Draft Preview */}
+              {detailViewDraft && (
+                <div>
+                  <strong style={{ display: "block", color: "#059669", fontSize: "1rem", marginBottom: "0.5rem" }}>
+                    ✅ AI Generated Reply:
+                  </strong>
+                  <div style={{
+                    padding: "1rem",
+                    background: "#f0fdf4",
+                    border: "1px solid #86efac",
+                    borderRadius: "0.5rem",
+                    whiteSpace: "pre-wrap",
+                    fontSize: "0.95rem",
+                    lineHeight: "1.6"
+                  }}>
+                    {detailViewDraft}
+                  </div>
+                  <p style={{ fontSize: "0.9rem", color: "#6b7280", marginTop: "0.5rem" }}>
+                    Close this dialog to edit and send from the main inbox view.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <StickyNotification 

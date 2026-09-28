@@ -1,9 +1,13 @@
+import type { KnowledgeBase } from "@/types/knowledge-base";
+
 export interface Mailbox {
   id: string;
   email: string;
   ai_enabled: boolean;
   prompt: string | null;
   reply_language?: string;
+  website_url?: string | null;
+  knowledge_base?: KnowledgeBase | null;
   created_at: string;
   last_imap_check?: string | null;
   last_smtp_check?: string | null;

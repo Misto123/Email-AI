@@ -1,8 +1,10 @@
 import "server-only";
 
+import { supabaseAdmin } from "@/lib/supabase";
+
 /**
  * Calculate spam score for an email (0-100, higher = more likely spam)
- * Can optionally learn from historical spam training data
+ * Learns from historical spam training data automatically
  */
 export async function calculateSpamScore(
   email: {
@@ -65,23 +67,41 @@ export async function calculateSpamScore(
   if (/\p{Emoji}/u.test(subject)) score += 5;
   if (subject.toUpperCase() === subject && subject.length > 10) score += 10; // ALL CAPS
 
-  // Body spam patterns (20 points)
+  // Body spam patterns (30 points)
   if (body.includes("unsubscribe")) score += 5;
   if ((body.match(/http/g) || []).length > 5) score += 10; // Many links
-  if (body.length < 50) score += 5; // Very short
+  if (body.length === 0) score += 25; // Empty body - highly suspicious
+  else if (body.length < 50) score += 10; // Very short
 
-  // Learn from training data (if provided)
-  if (trainingData && trainingData.length > 0) {
-    const similarSpam = trainingData.filter(t => {
-      const similarity = 
-        (t.from_email === email.from_email ? 30 : 0) +
-        (t.subject.toLowerCase().includes(subject.split(" ").slice(0, 3).join(" ")) ? 20 : 0);
-      return similarity > 20;
-    });
-    
-    if (similarSpam.length > 0) {
-      score += 20; // User marked similar email as spam before
+  // Learn from user-marked spam (40 points max)
+  try {
+    const { data: spamHistory } = await supabaseAdmin
+      .from("spam_training")
+      .select("email_id, emails!inner(from_email, subject, body)")
+      .eq("is_spam", true)
+      .limit(100);
+
+    if (spamHistory && spamHistory.length > 0) {
+      let learningScore = 0;
+      
+      // Check if same sender was marked as spam before
+      const sameSender = spamHistory.some((s: any) => 
+        s.emails?.from_email?.toLowerCase() === fromEmail
+      );
+      if (sameSender) learningScore += 30;
+      
+      // Check for similar subject patterns
+      const similarSubjects = spamHistory.filter((s: any) => {
+        const spamSubject = (s.emails?.subject || "").toLowerCase();
+        const words = subject.split(" ").filter(w => w.length > 3);
+        return words.some(w => spamSubject.includes(w));
+      });
+      if (similarSubjects.length > 0) learningScore += 10;
+      
+      score += Math.min(learningScore, 40);
     }
+  } catch (error) {
+    console.error("Error learning from spam history:", error);
   }
 
   return Math.min(score, 100);

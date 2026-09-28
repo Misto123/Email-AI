@@ -33,15 +33,15 @@ export default function MailboxesPage() {
   }, []);
 
   const getStatusIcon = (status?: "online" | "offline" | "unknown") => {
-    if (status === "online") return "🟢";
-    if (status === "offline") return "🔴";
+    if (status === "online") return "✅";
+    if (status === "offline") return "❌";
     return "⚪";
   };
   
   const getStatusText = (status?: "online" | "offline" | "unknown") => {
-    if (status === "online") return "Online";
-    if (status === "offline") return "Offline";
-    return "Unknown";
+    if (status === "online") return "YES";
+    if (status === "offline") return "NO";
+    return "Not checked";
   };
 
   const formatCheckTime = (time?: string | null) => {
@@ -57,6 +57,14 @@ export default function MailboxesPage() {
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
+  };
+  
+  const formatFullDate = (time?: string | null) => {
+    if (!time) return "Never";
+    return new Intl.DateTimeFormat("en", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(time));
   };
 
   return (
@@ -136,29 +144,60 @@ export default function MailboxesPage() {
                     {/* Connection Status */}
                     <div style={{ 
                       display: "flex", 
-                      gap: "1rem", 
-                      fontSize: "0.85rem",
-                      marginTop: "0.5rem"
+                      flexDirection: "column",
+                      gap: "0.5rem", 
+                      marginTop: "0.75rem",
+                      padding: "0.75rem",
+                      background: "#f9fafb",
+                      borderRadius: "0.5rem",
+                      border: "1px solid #e5e7eb"
                     }}>
-                      <span 
-                        style={{ 
-                          color: mailbox.imap_status === "online" ? "#059669" : mailbox.imap_status === "offline" ? "#dc2626" : "#6b7280"
-                        }}
-                        title={mailbox.last_imap_error || formatCheckTime(mailbox.last_imap_check)}
-                      >
-                        {getStatusIcon(mailbox.imap_status)} IMAP: {getStatusText(mailbox.imap_status)}
-                      </span>
-                      <span 
-                        style={{ 
-                          color: mailbox.smtp_status === "online" ? "#059669" : mailbox.smtp_status === "offline" ? "#dc2626" : "#6b7280"
-                        }}
-                        title={mailbox.last_smtp_error || formatCheckTime(mailbox.last_smtp_check)}
-                      >
-                        {getStatusIcon(mailbox.smtp_status)} SMTP: {getStatusText(mailbox.smtp_status)}
-                      </span>
-                      <span style={{ color: "#9ca3af", fontSize: "0.8rem" }}>
-                        {formatCheckTime(mailbox.last_imap_check || mailbox.last_smtp_check)}
-                      </span>
+                      <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
+                        <div style={{ flex: "1", minWidth: "200px" }}>
+                          <div 
+                            style={{ 
+                              color: mailbox.imap_status === "online" ? "#059669" : mailbox.imap_status === "offline" ? "#dc2626" : "#6b7280",
+                              fontWeight: "600",
+                              fontSize: "0.9rem"
+                            }}
+                            title={mailbox.last_imap_error || `Last checked: ${formatFullDate(mailbox.last_imap_check)}`}
+                          >
+                            {getStatusIcon(mailbox.imap_status)} IMAP Connected: {getStatusText(mailbox.imap_status)}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" }}>
+                            Last check: {formatCheckTime(mailbox.last_imap_check)}
+                          </div>
+                        </div>
+                        
+                        <div style={{ flex: "1", minWidth: "200px" }}>
+                          <div 
+                            style={{ 
+                              color: mailbox.smtp_status === "online" ? "#059669" : mailbox.smtp_status === "offline" ? "#dc2626" : "#6b7280",
+                              fontWeight: "600",
+                              fontSize: "0.9rem"
+                            }}
+                            title={mailbox.last_smtp_error || `Last checked: ${formatFullDate(mailbox.last_smtp_check)}`}
+                          >
+                            {getStatusIcon(mailbox.smtp_status)} SMTP Connected: {getStatusText(mailbox.smtp_status)}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" }}>
+                            Last check: {formatCheckTime(mailbox.last_smtp_check)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {(mailbox.last_imap_error || mailbox.last_smtp_error) && (
+                        <div style={{ 
+                          fontSize: "0.8rem", 
+                          color: "#dc2626", 
+                          background: "#fef2f2",
+                          padding: "0.5rem",
+                          borderRadius: "0.25rem",
+                          marginTop: "0.25rem"
+                        }}>
+                          ⚠️ {mailbox.last_imap_error || mailbox.last_smtp_error}
+                        </div>
+                      )}
                     </div>
 
                     {mailbox.prompt && (
@@ -167,6 +206,26 @@ export default function MailboxesPage() {
                         {mailbox.prompt.length > 80 ? "..." : ""}
                       </small>
                     )}
+                    
+                    {/* Knowledge Base Link */}
+                    <div style={{ marginTop: "0.75rem" }}>
+                      <a 
+                        href={`/mailboxes/${mailbox.id}/knowledge-base`}
+                        style={{
+                          display: "inline-block",
+                          padding: "6px 12px",
+                          background: "#f0f9ff",
+                          color: "#0284c7",
+                          border: "1px solid #bae6fd",
+                          borderRadius: "4px",
+                          fontSize: "0.85rem",
+                          textDecoration: "none",
+                          fontWeight: "500",
+                        }}
+                      >
+                        🧠 Edit Knowledge Base
+                      </a>
+                    </div>
                   </div>
                 </article>
               ))}
