@@ -68,7 +68,7 @@ export default function ArchivePage() {
 
   const filteredEmails = selectedMailbox === "all"
     ? archivedEmails
-    : archivedEmails.filter(e => e.mailboxes.id === selectedMailbox);
+    : archivedEmails.filter(e => e.mailbox_id === selectedMailbox);
 
   return (
     <main className="mail-shell">
