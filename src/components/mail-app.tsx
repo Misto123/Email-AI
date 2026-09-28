@@ -229,22 +229,6 @@ export function MailApp() {
     }
   };
 
-  const archiveEmail = async (emailId: string, draftId: string) => {
-    try {
-      const response = await fetch(`/api/emails/${emailId}/archive`, {
-        method: "POST",
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to archive");
-      }
-      setDrafts((items) => items.filter((item) => item.id !== draftId));
-      showNotification("Email archived", "success");
-    } catch (err) {
-      showNotification(err instanceof Error ? err.message : "Unable to archive", "error");
-    }
-  };
-
   const generateReply = async (emailId: string) => {
     try {
       setGeneratingFor(emailId);
