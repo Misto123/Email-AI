@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from("settings")
-      .select("openrouter_model,spam_threshold,spam_keywords")
+      .select("openrouter_model,spam_threshold,spam_keywords,email_signature")
       .limit(1)
       .maybeSingle();
     
@@ -15,6 +15,7 @@ export async function GET() {
       openrouter_model: data?.openrouter_model || "openai/gpt-5.6-luna",
       spam_threshold: data?.spam_threshold || 80,
       spam_keywords: data?.spam_keywords || "",
+      email_signature: data?.email_signature || "",
     });
   } catch {
     return NextResponse.json(
@@ -30,6 +31,7 @@ export async function PATCH(request: Request) {
       openrouter_model?: string;
       spam_threshold?: number;
       spam_keywords?: string;
+      email_signature?: string;
     };
 
     if (body.openrouter_model && !body.openrouter_model.trim()) {
@@ -54,6 +56,9 @@ export async function PATCH(request: Request) {
     }
     if (body.spam_keywords !== undefined) {
       updateData.spam_keywords = body.spam_keywords.trim();
+    }
+    if (body.email_signature !== undefined) {
+      updateData.email_signature = body.email_signature.trim();
     }
 
     const query = setting?.id

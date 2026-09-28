@@ -13,6 +13,19 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     const email = Array.isArray(emailValue) ? emailValue[0] : emailValue;
     const mailbox = Array.isArray(mailboxValue) ? mailboxValue[0] : mailboxValue;
     
+    // Get email signature from settings
+    const { data: settings } = await supabaseAdmin
+      .from("settings")
+      .select("email_signature")
+      .limit(1)
+      .maybeSingle();
+    
+    // Append signature if it exists
+    let emailBody = draft.draft_body || "";
+    if (settings?.email_signature && settings.email_signature.trim()) {
+      emailBody = `${emailBody}\n\n${settings.email_signature}`;
+    }
+    
     // Build proper threading headers
     const references = email.references 
       ? `${email.references} ${email.message_id}`
@@ -23,7 +36,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       from: mailbox.email, 
       to: email.from_email, 
       subject: email.subject?.startsWith("Re:") ? email.subject : `Re: ${email.subject || ""}`, 
-      text: draft.draft_body, 
+      text: emailBody, 
       headers: { 
         "In-Reply-To": email.message_id, 
         References: references

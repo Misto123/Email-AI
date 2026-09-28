@@ -255,7 +255,22 @@ export function MailApp() {
       
       showNotification("AI reply generated successfully!", "success");
       // Reload to show the new draft
-      void load();
+      await load();
+      
+      // Auto-scroll to drafts section after a short delay
+      setTimeout(() => {
+        const allH2 = Array.from(document.querySelectorAll('h2'));
+        const draftsHeading = allH2.find(h => h.textContent?.includes('AI Drafts'));
+        if (draftsHeading) {
+          draftsHeading.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          // Fallback: scroll to first draft card
+          const firstDraft = document.querySelector('.draft-card');
+          if (firstDraft) {
+            firstDraft.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+      }, 500);
     } catch (err) {
       showNotification(err instanceof Error ? err.message : "Unable to generate reply", "error");
     } finally {

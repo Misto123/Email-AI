@@ -125,6 +125,19 @@ export function decodeEmailBody(raw: string): string {
     body = body.replace(/Content-(Type|Transfer-Encoding):.*?\r?\n/g, "");
     body = body.replace(/<[^>]+>/g, ""); // Remove HTML tags
     body = body.replace(/\r/g, "");
+    
+    // Decode HTML entities
+    body = body.replace(/&rsquo;/g, "'");
+    body = body.replace(/&lsquo;/g, "'");
+    body = body.replace(/&quot;/g, '"');
+    body = body.replace(/&ldquo;/g, '"');
+    body = body.replace(/&rdquo;/g, '"');
+    body = body.replace(/&amp;/g, "&");
+    body = body.replace(/&lt;/g, "<");
+    body = body.replace(/&gt;/g, ">");
+    body = body.replace(/&nbsp;/g, " ");
+    body = body.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)));
+    
     body = body.trim();
 
     return body;

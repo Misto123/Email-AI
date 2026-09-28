@@ -8,6 +8,7 @@ export default function SettingsPage() {
   const [model, setModel] = useState("openai/gpt-5.6-luna");
   const [spamThreshold, setSpamThreshold] = useState(80);
   const [spamKeywords, setSpamKeywords] = useState("");
+  const [emailSignature, setEmailSignature] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "info" | "warning">("info");
 
@@ -18,10 +19,12 @@ export default function SettingsPage() {
         openrouter_model?: string;
         spam_threshold?: number;
         spam_keywords?: string;
+        email_signature?: string;
       }) => {
         if (data.openrouter_model) setModel(data.openrouter_model);
         if (data.spam_threshold) setSpamThreshold(data.spam_threshold);
         if (data.spam_keywords) setSpamKeywords(data.spam_keywords);
+        if (data.email_signature) setEmailSignature(data.email_signature);
       });
   }, []);
 
@@ -39,6 +42,7 @@ export default function SettingsPage() {
           openrouter_model: model,
           spam_threshold: spamThreshold,
           spam_keywords: spamKeywords,
+          email_signature: emailSignature,
         }),
       });
       if (response.ok) {
@@ -166,6 +170,37 @@ export default function SettingsPage() {
               ))}
             </ul>
           </details>
+        </div>
+
+        {/* Email Signature Settings */}
+        <div className="settings-card" style={{ marginBottom: "2rem" }}>
+          <h2 style={{ marginBottom: "1rem", fontSize: "1.25rem" }}>Email Signature</h2>
+          
+          <label htmlFor="signature">
+            Signature (automatically added to all sent emails)
+          </label>
+          <textarea
+            id="signature"
+            value={emailSignature}
+            onChange={(event) => setEmailSignature(event.target.value)}
+            placeholder="Best regards,&#10;Your Name&#10;Your Company&#10;email@example.com"
+            rows={6}
+            style={{
+              width: "100%",
+              padding: "0.75rem",
+              border: "1px solid #d1d5db",
+              borderRadius: "0.5rem",
+              fontSize: "0.95rem",
+              fontFamily: "inherit",
+              resize: "vertical"
+            }}
+          />
+          <p className="help" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b7280" }}>
+            This signature will be automatically appended to all AI-generated email replies. Leave blank if you don't want a signature.
+          </p>
+          <p className="help" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#6b7280" }}>
+            💡 Tip: Keep it simple and text-only (no HTML or formatting).
+          </p>
         </div>
 
         <button
