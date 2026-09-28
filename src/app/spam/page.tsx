@@ -33,14 +33,35 @@ export default function SpamPage() {
   const load = async () => {
     try {
       setLoading(true);
-      // For now, show all high-spam emails from drafts
-      const response = await fetch("/api/drafts");
-      if (!response.ok) throw new Error();
-      const data = await response.json();
-      // Filter emails with spam score >= 60
-      const spam = data.filter((d: Draft) => (d.emails.spam_score || 0) >= 60);
-      setSpamEmails(spam);
-    } catch {
+      // Load both drafts and pending emails with spam score >= 50
+      const [draftsRes, pendingRes] = await Promise.all([
+        fetch("/api/drafts"),
+        fetch("/api/emails/pending")
+      ]);
+      
+      if (!draftsRes.ok) throw new Error("Failed to load drafts");
+      if (!pendingRes.ok) throw new Error("Failed to load pending emails");
+      
+      const drafts = await draftsRes.json();
+      const pending = await pendingRes.json();
+      
+      // Filter spam emails (score >= 50) from both
+      const spamDrafts = drafts.filter((d: Draft) => (d.emails.spam_score || 0) >= 50);
+      
+      // Convert pending emails to draft-like format for display
+      const spamPending = pending
+        .filter((e: any) => (e.spam_score || 0) >= 50)
+        .map((e: any) => ({
+          id: `pending-${e.id}`,
+          email_id: e.id,
+          emails: e,
+          draft_body: null,
+          status: "pending"
+        }));
+      
+      setSpamEmails([...spamDrafts, ...spamPending]);
+    } catch (err) {
+      console.error("Error loading spam:", err);
       setSpamEmails([]);
     } finally {
       setLoading(false);
@@ -100,7 +121,7 @@ export default function SpamPage() {
             <p className="eyebrow">Spam folder</p>
             <h1>Spam Emails</h1>
             <p className="lede">
-              Emails marked as spam or with high spam scores (≥60).
+              Emails with spam score ≥50 are automatically hidden from inbox. Auto-deleted after 7 days.
             </p>
           </div>
           <span className="count">{spamEmails.length} spam</span>

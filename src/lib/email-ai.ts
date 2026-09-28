@@ -170,7 +170,7 @@ async function buildEnhancedContext(
 
 export async function generateReply(email: Pick<EmailRecord, "from_email" | "from_name" | "subject" | "body">, mailboxPrompt: string | null, language: string = "en", mailboxId?: string, knowledgeBase?: KnowledgeBase | null) {
   const { data: setting } = await supabaseAdmin.from("settings").select("openrouter_model").limit(1).maybeSingle();
-  const model = (setting as { openrouter_model?: string } | null)?.openrouter_model || "deepseek/deepseek-r1";
+  const model = (setting as { openrouter_model?: string } | null)?.openrouter_model || "deepseek/deepseek-v4.1-flash";
   
   const languageInstructions: Record<string, string> = {
     en: "Reply in English.",
@@ -210,12 +210,8 @@ export async function generateReply(email: Pick<EmailRecord, "from_email" | "fro
     
     if (!response.ok) {
       const errorText = await response.text();
-      // Check if it's a credit error
-      if (errorText.includes("Insufficient credits") || errorText.includes("402")) {
-        console.warn("OpenRouter credits exhausted, falling back to DeepSeek");
-        throw new Error("FALLBACK_TO_DEEPSEEK");
-      }
-      throw new Error(`OpenRouter error: ${errorText}`);
+      console.warn("OpenRouter error, falling back to DeepSeek:", errorText);
+      throw new Error("FALLBACK_TO_DEEPSEEK");
     }
     
     const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -224,8 +220,8 @@ export async function generateReply(email: Pick<EmailRecord, "from_email" | "fro
     return reply;
     
   } catch (error) {
-    // Fallback to DeepSeek if OpenRouter fails
-    if (error instanceof Error && (error.message.includes("FALLBACK_TO_DEEPSEEK") || error.message.includes("Insufficient credits"))) {
+    // Fallback to DeepSeek if OpenRouter fails for ANY reason
+    if (error instanceof Error && error.message.includes("FALLBACK_TO_DEEPSEEK")) {
       console.log("Using DeepSeek fallback...");
       
       const deepseekResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -235,14 +231,14 @@ export async function generateReply(email: Pick<EmailRecord, "from_email" | "fro
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ 
-          model: "deepseek-reasoner",
+          model: "deepseek-chat",
           temperature: 0.3, 
           messages 
         }),
       });
       
       if (!deepseekResponse.ok) {
-        throw new Error(`DeepSeek error: ${await deepseekResponse.text()}`);
+        throw new Error(`DeepSeek fallback also failed: ${await deepseekResponse.text()}`);
       }
       
       const deepseekData = (await deepseekResponse.json()) as { choices?: Array<{ message?: { content?: string } }> };

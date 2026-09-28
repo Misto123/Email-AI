@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Draft, PendingEmail, Mailbox } from "@/lib/mail-types";
 import { StickyNotification } from "./sticky-notification";
 import { EmailCheckCountdown } from "./email-check-countdown";
+import { parseContactFormEmail } from "@/lib/email-parser";
 
 const formatDate = (value: string | null) =>
   value
@@ -211,6 +212,28 @@ export function MailApp() {
       const response = await fetch(`/api/emails/${emailId}/archive`, {
         method: "POST",
       });
+      
+      if (!response.ok) {
+        throw new Error("Failed to archive email");
+      }
+      
+      // Remove from drafts if it has a draft
+      if (draftId) {
+        setDrafts((items) => items.filter((item) => item.id !== draftId));
+      }
+      // Remove from pending emails
+      setPendingEmails((items) => items.filter((item) => item.id !== emailId));
+      showNotification("Email archived", "success");
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : "Unable to archive email", "error");
+    }
+  };
+
+  const archiveEmail = async (emailId: string, draftId: string) => {
+    try {
+      const response = await fetch(`/api/emails/${emailId}/archive`, {
+        method: "POST",
+      });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to archive");
@@ -344,6 +367,7 @@ export function MailApp() {
               marginLeft: "0.25rem"
             }}>{spamCount}</span>}
           </a>
+          <a href="/archive">Archive</a>
         </nav>
         <EmailCheckCountdown onCheckNow={checkNow} />
       </header>
@@ -796,8 +820,8 @@ export function MailApp() {
                       <span>{email.from_email}</span>
                     </p>
                     <p className="original">
-                      {email.body?.slice(0, 220)}
-                      {(email.body?.length || 0) > 220 ? "..." : ""}
+                      {email.body?.slice(0, 400)}
+                      {(email.body?.length || 0) > 400 ? "..." : ""}
                     </p>
                     
                     <div className="actions" style={{ marginTop: "1rem" }}>
@@ -807,7 +831,9 @@ export function MailApp() {
                         disabled={isGenerating}
                         style={{ 
                           background: isGenerating ? "#9ca3af" : "#10b981",
-                          cursor: isGenerating ? "not-allowed" : "pointer"
+                          cursor: isGenerating ? "not-allowed" : "pointer",
+                          padding: "0.75rem 1.25rem",
+                          fontSize: "0.95rem"
                         }}
                       >
                         {isGenerating ? "⏳ Generating..." : "✨ Generate AI Reply"}
@@ -815,14 +841,14 @@ export function MailApp() {
                       <button
                         className="button"
                         onClick={() => setDetailViewEmail(email)}
-                        style={{ background: "#3b82f6", color: "white" }}
+                        style={{ background: "#3b82f6", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                       >
                         📋 Details
                       </button>
                       <button
                         className="button"
                         onClick={() => void markAsSpam(email.id, "")}
-                        style={{ background: "#f59e0b", color: "white" }}
+                        style={{ background: "#f59e0b", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                         disabled={isGenerating}
                       >
                         🚩 Mark as Spam
@@ -889,8 +915,8 @@ export function MailApp() {
                   <span>{draft.emails.from_email}</span>
                 </p>
                 <p className="original">
-                  {draft.emails.body?.slice(0, 220)}
-                  {(draft.emails.body?.length || 0) > 220 ? "..." : ""}
+                  {draft.emails.body?.slice(0, 400)}
+                  {(draft.emails.body?.length || 0) > 400 ? "..." : ""}
                 </p>
                 <textarea
                   aria-label="Draft reply"
@@ -929,19 +955,21 @@ export function MailApp() {
                             showNotification(err instanceof Error ? err.message : "Failed to save draft", "error");
                           }
                         }}
+                        style={{ padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                       >
                         💾 Edit / Save
                       </button>
                       <button
                         className="button primary"
                         onClick={() => void send(draft)}
+                        style={{ padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                       >
                         ✉️ Send
                       </button>
                       <button
                         className="button"
                         onClick={() => openSidebar(draft.emails.id)}
-                        style={{ background: "#3b82f6", color: "white" }}
+                        style={{ background: "#3b82f6", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                       >
                         📋 Details
                       </button>
@@ -951,7 +979,7 @@ export function MailApp() {
                     <button
                       className="button danger"
                       onClick={() => void deleteSpam(draft.emails.id, draft.id)}
-                      style={{ background: "#dc2626" }}
+                      style={{ background: "#dc2626", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                     >
                       🚫 Delete Spam
                     </button>
@@ -959,7 +987,7 @@ export function MailApp() {
                   <button
                     className="button"
                     onClick={() => void markAsSpam(draft.emails.id, draft.id)}
-                    style={{ background: "#f59e0b", color: "white" }}
+                    style={{ background: "#f59e0b", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                   >
                     🚩 Mark as Spam
                   </button>
@@ -1170,69 +1198,145 @@ export function MailApp() {
 
             {/* Email Content */}
             <div style={{ padding: "1.5rem" }}>
-              {/* Spam Score */}
-              <div style={{
-                display: "inline-block",
-                padding: "0.5rem 1rem",
-                borderRadius: "0.5rem",
-                marginBottom: "1rem",
-                background: (detailViewEmail.spam_score || 0) >= 60 ? "#fee2e2" : (detailViewEmail.spam_score || 0) >= 40 ? "#fef3c7" : "#f0fdf4",
-                color: (detailViewEmail.spam_score || 0) >= 60 ? "#dc2626" : (detailViewEmail.spam_score || 0) >= 40 ? "#f59e0b" : "#059669",
-                fontWeight: "600"
-              }}>
-                Spam Score: {detailViewEmail.spam_score || 0}/100
-              </div>
+              {(() => {
+                const parsed = parseContactFormEmail(detailViewEmail.body || "");
+                
+                return (
+                  <>
+                    {/* Compact Header - All info in one row */}
+                    <div style={{ 
+                      display: "grid", 
+                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                      gap: "1rem",
+                      padding: "1rem",
+                      background: "#f9fafb",
+                      borderRadius: "0.5rem",
+                      marginBottom: "1.5rem",
+                      fontSize: "0.85rem"
+                    }}>
+                      <div>
+                        <strong style={{ color: "#6b7280" }}>From:</strong>
+                        <div style={{ marginTop: "0.25rem" }}>{detailViewEmail.from_name || detailViewEmail.from_email || "Unknown"}</div>
+                      </div>
+                      <div>
+                        <strong style={{ color: "#6b7280" }}>To:</strong>
+                        <div style={{ marginTop: "0.25rem" }}>{detailViewEmail.mailboxes.email}</div>
+                      </div>
+                      <div>
+                        <strong style={{ color: "#6b7280" }}>Date:</strong>
+                        <div style={{ marginTop: "0.25rem" }}>{formatDate(detailViewEmail.received_at)}</div>
+                      </div>
+                      <div>
+                        <strong style={{ color: "#6b7280" }}>Spam:</strong>
+                        <div style={{ 
+                          marginTop: "0.25rem",
+                          color: (detailViewEmail.spam_score || 0) >= 60 ? "#dc2626" : (detailViewEmail.spam_score || 0) >= 40 ? "#f59e0b" : "#059669",
+                          fontWeight: "600"
+                        }}>
+                          {detailViewEmail.spam_score || 0}/100
+                        </div>
+                      </div>
+                    </div>
 
-              {/* From */}
-              <div style={{ marginBottom: "1rem" }}>
-                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>From:</strong>
-                <div>{detailViewEmail.from_name || detailViewEmail.from_email || "Unknown"}</div>
-                {detailViewEmail.from_name && (
-                  <div style={{ fontSize: "0.9rem", color: "#6b7280" }}>{detailViewEmail.from_email}</div>
-                )}
-              </div>
+                    {/* Subject */}
+                    <div style={{ marginBottom: "1.5rem" }}>
+                      <strong style={{ fontSize: "1.1rem", color: "#111827" }}>{detailViewEmail.subject || "(No subject)"}</strong>
+                    </div>
 
-              {/* To */}
-              <div style={{ marginBottom: "1rem" }}>
-                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>To:</strong>
-                <div>{detailViewEmail.mailboxes.email}</div>
-              </div>
-
-              {/* Subject */}
-              <div style={{ marginBottom: "1rem" }}>
-                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Subject:</strong>
-                <div>{detailViewEmail.subject || "(No subject)"}</div>
-              </div>
-
-              {/* Date */}
-              <div style={{ marginBottom: "1rem" }}>
-                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.25rem" }}>Date:</strong>
-                <div>{formatDate(detailViewEmail.received_at)}</div>
-              </div>
-
-              {/* Body */}
-              <div style={{ marginBottom: "1.5rem" }}>
-                <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.5rem" }}>Full Message:</strong>
-                <div style={{
-                  padding: "1rem",
-                  background: "#f9fafb",
-                  borderRadius: "0.5rem",
-                  whiteSpace: "pre-wrap",
-                  fontSize: "0.95rem",
-                  lineHeight: "1.6",
-                  maxHeight: "500px",
-                  overflow: "auto",
-                  border: "1px solid #e5e7eb"
-                }}>
-                  {detailViewEmail.body || "(No content)"}
-                </div>
-                <div style={{ fontSize: "0.8rem", color: "#9ca3af", marginTop: "0.5rem" }}>
-                  {detailViewEmail.body ? `${detailViewEmail.body.length} characters` : "Empty email body"}
-                </div>
-              </div>
+                    {/* Message - Contact Form or Plain */}
+                    {parsed.isContactForm ? (
+                      <div style={{ marginBottom: "1.5rem" }}>
+                        <div style={{
+                          padding: "1.5rem",
+                          background: "#f0f9ff",
+                          border: "2px solid #3b82f6",
+                          borderRadius: "0.75rem"
+                        }}>
+                          <h3 style={{ margin: "0 0 1rem 0", color: "#1e40af", fontSize: "1rem" }}>
+                            📬 Contact Form Submission
+                          </h3>
+                          
+                          {parsed.name && (
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <strong style={{ color: "#374151" }}>Name:</strong>
+                              <div style={{ marginTop: "0.25rem", fontSize: "1rem" }}>{parsed.name}</div>
+                            </div>
+                          )}
+                          
+                          {parsed.email && (
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <strong style={{ color: "#374151" }}>Email:</strong>
+                              <div style={{ marginTop: "0.25rem" }}>
+                                <a href={`mailto:${parsed.email}`} style={{ color: "#3b82f6" }}>{parsed.email}</a>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {parsed.message && (
+                            <div>
+                              <strong style={{ color: "#374151" }}>Message:</strong>
+                              <div style={{
+                                marginTop: "0.5rem",
+                                padding: "1rem",
+                                background: "white",
+                                borderRadius: "0.5rem",
+                                whiteSpace: "pre-wrap",
+                                lineHeight: "1.6"
+                              }}>
+                                {parsed.message}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Show raw toggle */}
+                        <details style={{ marginTop: "1rem" }}>
+                          <summary style={{ cursor: "pointer", color: "#6b7280", fontSize: "0.85rem" }}>
+                            📄 View raw email
+                          </summary>
+                          <div style={{
+                            marginTop: "0.5rem",
+                            padding: "1rem",
+                            background: "#f9fafb",
+                            borderRadius: "0.5rem",
+                            whiteSpace: "pre-wrap",
+                            fontSize: "0.85rem",
+                            lineHeight: "1.6",
+                            maxHeight: "300px",
+                            overflow: "auto",
+                            border: "1px solid #e5e7eb"
+                          }}>
+                            {detailViewEmail.body}
+                          </div>
+                        </details>
+                      </div>
+                    ) : (
+                      <div style={{ marginBottom: "1.5rem" }}>
+                        <strong style={{ display: "block", color: "#6b7280", fontSize: "0.9rem", marginBottom: "0.5rem" }}>Message:</strong>
+                        <div style={{
+                          padding: "1rem",
+                          background: "#f9fafb",
+                          borderRadius: "0.5rem",
+                          whiteSpace: "pre-wrap",
+                          fontSize: "0.95rem",
+                          lineHeight: "1.6",
+                          maxHeight: "500px",
+                          overflow: "auto",
+                          border: "1px solid #e5e7eb"
+                        }}>
+                          {detailViewEmail.body || "(No content)"}
+                        </div>
+                        <div style={{ fontSize: "0.8rem", color: "#9ca3af", marginTop: "0.5rem" }}>
+                          {detailViewEmail.body ? `${detailViewEmail.body.length} characters` : "Empty email body"}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Actions */}
-              <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
                 <button
                   className="button primary"
                   onClick={async () => {
@@ -1250,7 +1354,9 @@ export function MailApp() {
                   disabled={generatingFor === detailViewEmail.id}
                   style={{
                     background: generatingFor === detailViewEmail.id ? "#9ca3af" : "#10b981",
-                    cursor: generatingFor === detailViewEmail.id ? "not-allowed" : "pointer"
+                    cursor: generatingFor === detailViewEmail.id ? "not-allowed" : "pointer",
+                    padding: "0.75rem 1.5rem",
+                    fontSize: "1rem"
                   }}
                 >
                   {generatingFor === detailViewEmail.id ? "⏳ Generating..." : "✨ Generate AI Reply"}
@@ -1258,9 +1364,20 @@ export function MailApp() {
                 <button
                   className="button"
                   onClick={() => void markAsSpam(detailViewEmail.id, "")}
-                  style={{ background: "#f59e0b", color: "white" }}
+                  style={{ background: "#f59e0b", color: "white", padding: "0.75rem 1.5rem", fontSize: "1rem" }}
                 >
                   🚩 Mark as Spam
+                </button>
+                <button
+                  className="button"
+                  onClick={async () => {
+                    await archiveEmail(detailViewEmail.id, "");
+                    setDetailViewEmail(null);
+                    setDetailViewDraft(null);
+                  }}
+                  style={{ background: "#3b82f6", color: "white", padding: "0.75rem 1.5rem", fontSize: "1rem" }}
+                >
+                  📁 Archive
                 </button>
               </div>
 
