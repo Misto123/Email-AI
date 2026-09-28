@@ -114,6 +114,7 @@ export default function SpamPage() {
           <a className="active" href="/spam">
             Spam
           </a>
+          <a href="/archive">Archive</a>
         </nav>
         <EmailCheckCountdown onCheckNow={checkNow} />
       </header>

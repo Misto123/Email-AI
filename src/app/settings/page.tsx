@@ -77,6 +77,7 @@ export default function SettingsPage() {
             Settings
           </a>
           <a href="/spam">Spam</a>
+          <a href="/archive">Archive</a>
         </nav>
       </header>
       <section className="content narrow">
