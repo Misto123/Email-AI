@@ -464,7 +464,29 @@ export function MailApp() {
               {mailboxes.map((mailbox) => {
                 const imapOk = mailbox.imap_status === "online";
                 const smtpOk = mailbox.smtp_status === "online";
+                const imapUnknown = !mailbox.imap_status || mailbox.imap_status === "unknown";
+                const smtpUnknown = !mailbox.smtp_status || mailbox.smtp_status === "unknown";
                 const allOk = imapOk && smtpOk;
+                const anyUnknown = imapUnknown || smtpUnknown;
+                const anyFailed = (!imapOk && !imapUnknown) || (!smtpOk && !smtpUnknown);
+                
+                const getIcon = (isOnline: boolean, isUnknown: boolean) => {
+                  if (isOnline) return "✅";
+                  if (isUnknown) return "⚪";
+                  return "❌";
+                };
+                
+                const getColor = (isOnline: boolean, isUnknown: boolean) => {
+                  if (isOnline) return "#059669";
+                  if (isUnknown) return "#9ca3af";
+                  return "#dc2626";
+                };
+                
+                const getBorderColor = () => {
+                  if (allOk) return "#10b981"; // green
+                  if (anyFailed) return "#dc2626"; // red
+                  return "#9ca3af"; // gray for unknown
+                };
                 
                 return (
                   <div 
@@ -475,7 +497,7 @@ export function MailApp() {
                       padding: "0.75rem",
                       background: "white",
                       borderRadius: "0.5rem",
-                      border: `2px solid ${allOk ? "#10b981" : "#fbbf24"}`
+                      border: `2px solid ${getBorderColor()}`
                     }}
                   >
                     <div style={{ 
@@ -487,11 +509,11 @@ export function MailApp() {
                       {mailbox.email}
                     </div>
                     <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem" }}>
-                      <span style={{ color: imapOk ? "#059669" : "#dc2626" }}>
-                        {imapOk ? "✅" : "❌"} IMAP
+                      <span style={{ color: getColor(imapOk, imapUnknown) }}>
+                        {getIcon(imapOk, imapUnknown)} IMAP
                       </span>
-                      <span style={{ color: smtpOk ? "#059669" : "#dc2626" }}>
-                        {smtpOk ? "✅" : "❌"} SMTP
+                      <span style={{ color: getColor(smtpOk, smtpUnknown) }}>
+                        {getIcon(smtpOk, smtpUnknown)} SMTP
                       </span>
                     </div>
                     {mailbox.last_imap_check && (
@@ -512,6 +534,64 @@ export function MailApp() {
                 );
               })}
             </div>
+            
+            {/* Help banner for connection issues */}
+            {(() => {
+              const hasUnknown = mailboxes.some(m => !m.imap_status || m.imap_status === "unknown" || !m.smtp_status || m.smtp_status === "unknown");
+              const hasFailed = mailboxes.some(m => m.imap_status === "offline" || m.smtp_status === "offline");
+              
+              if (hasUnknown) {
+                return (
+                  <div style={{
+                    marginTop: "1rem",
+                    padding: "1rem",
+                    background: "#f0f9ff",
+                    border: "1px solid #93c5fd",
+                    borderRadius: "0.5rem",
+                    fontSize: "0.9rem"
+                  }}>
+                    <div style={{ fontWeight: "600", marginBottom: "0.5rem", color: "#1e40af" }}>
+                      ℹ️ Connection Status: Not Checked Yet
+                    </div>
+                    <div style={{ color: "#1e3a8a", lineHeight: "1.6" }}>
+                      Your mailboxes haven't been checked yet. Connections are tested automatically every 10 minutes when checking for new emails.
+                      <br />
+                      <strong>Next check:</strong> See countdown in top-right corner
+                    </div>
+                  </div>
+                );
+              }
+              
+              if (hasFailed) {
+                return (
+                  <div style={{
+                    marginTop: "1rem",
+                    padding: "1rem",
+                    background: "#fef2f2",
+                    border: "1px solid #fca5a5",
+                    borderRadius: "0.5rem",
+                    fontSize: "0.9rem"
+                  }}>
+                    <div style={{ fontWeight: "600", marginBottom: "0.5rem", color: "#991b1b" }}>
+                      ⚠️ Connection Failed
+                    </div>
+                    <div style={{ color: "#7f1d1d", lineHeight: "1.6" }}>
+                      <strong>What this means:</strong> The system cannot connect to your email server to fetch or send emails.
+                      <br /><br />
+                      <strong>How to fix:</strong>
+                      <ol style={{ marginLeft: "1.5rem", marginTop: "0.5rem", marginBottom: "0" }}>
+                        <li>Check your <a href="/mailboxes" style={{ color: "#dc2626", textDecoration: "underline" }}>mailbox credentials</a> are correct</li>
+                        <li>Verify IMAP/SMTP settings match your email provider (Purelymail, Gmail, etc.)</li>
+                        <li>Check if your email provider requires app-specific passwords</li>
+                        <li>Wait for next automatic check (every 10 minutes) to see if issue resolves</li>
+                      </ol>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return null;
+            })()}
           </div>
         )}
 
