@@ -45,12 +45,14 @@ export default function SpamPage() {
       const drafts = await draftsRes.json();
       const pending = await pendingRes.json();
       
-      // Filter spam emails (score >= 50) from both
-      const spamDrafts = drafts.filter((d: Draft) => (d.emails.spam_score || 0) >= 50);
+      // Filter spam emails (manually marked OR score >= 50) from both
+      const spamDrafts = drafts.filter((d: Draft) => 
+        d.emails.is_spam || (d.emails.spam_score || 0) >= 50
+      );
       
       // Convert pending emails to draft-like format for display
       const spamPending = pending
-        .filter((e: any) => (e.spam_score || 0) >= 50)
+        .filter((e: any) => e.is_spam || (e.spam_score || 0) >= 50)
         .map((e: any) => ({
           id: `pending-${e.id}`,
           email_id: e.id,

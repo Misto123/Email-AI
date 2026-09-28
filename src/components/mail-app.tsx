@@ -320,11 +320,11 @@ export function MailApp() {
     ? drafts 
     : drafts.filter(d => d.mailbox_id === selectedMailbox);
   
-  // Auto-hide spam emails (score >= 50) from pending list
+  // Auto-hide spam emails (manually marked OR score >= 50) from pending list
   let filteredPendingEmails = (selectedMailbox === "all"
     ? pendingEmails
     : pendingEmails.filter(e => e.mailbox_id === selectedMailbox))
-    .filter(e => (e.spam_score || 0) < 50); // Hide spam
+    .filter(e => !e.is_spam && (e.spam_score || 0) < 50); // Hide spam
   
   // Sort pending emails
   filteredPendingEmails = [...filteredPendingEmails].sort((a, b) => {
@@ -647,9 +647,8 @@ export function MailApp() {
           flexWrap: "wrap",
           alignItems: "flex-end"
         }}>
-          <div style={{ flex: "1", minWidth: "200px" }}>
+          <div style={{ flex: "1" }}>
             <label 
-              htmlFor="sort-by" 
               style={{ 
                 display: "block", 
                 marginBottom: "0.5rem", 
@@ -660,29 +659,72 @@ export function MailApp() {
             >
               Sort by:
             </label>
-            <select
-              id="sort-by"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              style={{
-                padding: "0.75rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
-                fontSize: "1rem",
-                width: "100%",
-                cursor: "pointer"
-              }}
-            >
-              <option value="date">Date</option>
-              <option value="sender">Sender</option>
-              <option value="subject">Subject</option>
-              <option value="spam">Spam Score</option>
-            </select>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button
+                onClick={() => setSortBy("date")}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: sortBy === "date" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                  background: sortBy === "date" ? "#eff6ff" : "white",
+                  color: sortBy === "date" ? "#1e40af" : "#374151",
+                  fontSize: "0.9rem",
+                  fontWeight: sortBy === "date" ? "600" : "400",
+                  cursor: "pointer"
+                }}
+              >
+                📅 Date
+              </button>
+              <button
+                onClick={() => setSortBy("sender")}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: sortBy === "sender" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                  background: sortBy === "sender" ? "#eff6ff" : "white",
+                  color: sortBy === "sender" ? "#1e40af" : "#374151",
+                  fontSize: "0.9rem",
+                  fontWeight: sortBy === "sender" ? "600" : "400",
+                  cursor: "pointer"
+                }}
+              >
+                👤 Sender
+              </button>
+              <button
+                onClick={() => setSortBy("subject")}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: sortBy === "subject" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                  background: sortBy === "subject" ? "#eff6ff" : "white",
+                  color: sortBy === "subject" ? "#1e40af" : "#374151",
+                  fontSize: "0.9rem",
+                  fontWeight: sortBy === "subject" ? "600" : "400",
+                  cursor: "pointer"
+                }}
+              >
+                📝 Subject
+              </button>
+              <button
+                onClick={() => setSortBy("spam")}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: sortBy === "spam" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                  background: sortBy === "spam" ? "#eff6ff" : "white",
+                  color: sortBy === "spam" ? "#1e40af" : "#374151",
+                  fontSize: "0.9rem",
+                  fontWeight: sortBy === "spam" ? "600" : "400",
+                  cursor: "pointer"
+                }}
+              >
+                🚫 Spam Score
+              </button>
+            </div>
           </div>
           
-          <div style={{ flex: "1", minWidth: "200px" }}>
+          <div style={{ flex: "1" }}>
             <label 
-              htmlFor="sort-order" 
               style={{ 
                 display: "block", 
                 marginBottom: "0.5rem", 
@@ -693,26 +735,38 @@ export function MailApp() {
             >
               Order:
             </label>
-            <select
-              id="sort-order"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as any)}
-              style={{
-                padding: "0.75rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #d1d5db",
-                fontSize: "1rem",
-                width: "100%",
-                cursor: "pointer"
-              }}
-            >
-              <option value="desc">
-                {sortBy === "date" ? "Newest First" : sortBy === "spam" ? "Highest First" : "Z → A"}
-              </option>
-              <option value="asc">
-                {sortBy === "date" ? "Oldest First" : sortBy === "spam" ? "Lowest First" : "A → Z"}
-              </option>
-            </select>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button
+                onClick={() => setSortOrder("desc")}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: sortOrder === "desc" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                  background: sortOrder === "desc" ? "#eff6ff" : "white",
+                  color: sortOrder === "desc" ? "#1e40af" : "#374151",
+                  fontSize: "0.9rem",
+                  fontWeight: sortOrder === "desc" ? "600" : "400",
+                  cursor: "pointer"
+                }}
+              >
+                {sortBy === "date" ? "⬇️ Newest First" : sortBy === "spam" ? "⬇️ Highest First" : "⬇️ Z → A"}
+              </button>
+              <button
+                onClick={() => setSortOrder("asc")}
+                style={{
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  border: sortOrder === "asc" ? "2px solid #3b82f6" : "1px solid #d1d5db",
+                  background: sortOrder === "asc" ? "#eff6ff" : "white",
+                  color: sortOrder === "asc" ? "#1e40af" : "#374151",
+                  fontSize: "0.9rem",
+                  fontWeight: sortOrder === "asc" ? "600" : "400",
+                  cursor: "pointer"
+                }}
+              >
+                {sortBy === "date" ? "⬆️ Oldest First" : sortBy === "spam" ? "⬆️ Lowest First" : "⬆️ A → Z"}
+              </button>
+            </div>
           </div>
         </div>
 
