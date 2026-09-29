@@ -208,6 +208,49 @@ export default function MailboxesPage() {
                       </small>
                     )}
                     
+                    {/* Language Settings */}
+                    <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f9fafb", borderRadius: "0.5rem", border: "1px solid #e5e7eb" }}>
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <label style={{ fontSize: "0.85rem", color: "#374151", fontWeight: "500", display: "block", marginBottom: "0.25rem" }}>
+                          🌍 Display Language (for you)
+                        </label>
+                        <select
+                          value={mailbox.default_language || "en"}
+                          onChange={async (e) => {
+                            const response = await fetch(`/api/mailboxes/${mailbox.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ default_language: e.target.value }),
+                            });
+                            if (response.ok) await load();
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "0.5rem",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "0.375rem",
+                            fontSize: "0.9rem"
+                          }}
+                        >
+                          <option value="en">English</option>
+                          <option value="es">Spanish</option>
+                          <option value="fr">French</option>
+                          <option value="de">German</option>
+                          <option value="it">Italian</option>
+                          <option value="pt">Portuguese</option>
+                          <option value="nl">Dutch</option>
+                          <option value="pl">Polish</option>
+                          <option value="ru">Russian</option>
+                          <option value="zh">Chinese</option>
+                          <option value="ja">Japanese</option>
+                          <option value="ko">Korean</option>
+                        </select>
+                        <small style={{ display: "block", color: "#6b7280", marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                          Incoming emails will be auto-translated to this language
+                        </small>
+                      </div>
+                    </div>
+                    
                     {/* Knowledge Base Link */}
                     <div style={{ marginTop: "0.75rem" }}>
                       <a 

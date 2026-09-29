@@ -143,6 +143,31 @@ export default function MailboxKnowledgeBasePage() {
             </p>
           </div>
 
+          {/* Explanation Box */}
+          <div style={{
+            padding: "1.25rem",
+            background: "#eff6ff",
+            border: "2px solid #3b82f6",
+            borderRadius: "0.75rem",
+            marginBottom: "1.5rem"
+          }}>
+            <h3 style={{ margin: "0 0 0.75rem 0", color: "#1e40af", fontSize: "1.1rem" }}>
+              💡 How Knowledge Base Works
+            </h3>
+            <p style={{ margin: "0 0 0.5rem 0", color: "#374151", lineHeight: "1.6" }}>
+              The knowledge base provides context to the AI when generating email replies. Information you add here will be used to:
+            </p>
+            <ul style={{ margin: "0.5rem 0 0 1.5rem", color: "#374151", lineHeight: "1.6" }}>
+              <li><strong>Answer questions</strong> about your business, products, or services</li>
+              <li><strong>Provide accurate information</strong> like pricing, features, availability</li>
+              <li><strong>Maintain consistency</strong> in responses across all emails</li>
+              <li><strong>Reduce hallucinations</strong> by giving the AI factual data to reference</li>
+            </ul>
+            <p style={{ margin: "0.75rem 0 0 0", color: "#6b7280", fontSize: "0.9rem" }}>
+              💡 <strong>Tip:</strong> Include FAQs, product details, pricing, policies, and any information customers commonly ask about.
+            </p>
+          </div>
+
           <KnowledgeBaseEditor
             mailboxId={mailbox.id}
             initialData={mailbox.knowledge_base || {}}

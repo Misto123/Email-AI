@@ -980,6 +980,13 @@ export function MailApp() {
                       </button>
                       <button
                         className="button"
+                        onClick={() => void archiveEmail(email.id, "")}
+                        style={{ background: "#3b82f6", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
+                      >
+                        📁 Archive
+                      </button>
+                      <button
+                        className="button"
                         onClick={() => void markAsSpam(email.id, "")}
                         style={{ background: "#f59e0b", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                         disabled={isGenerating}

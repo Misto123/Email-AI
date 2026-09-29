@@ -6,6 +6,7 @@ export interface Mailbox {
   ai_enabled: boolean;
   prompt: string | null;
   reply_language?: string;
+  default_language?: string;
   website_url?: string | null;
   knowledge_base?: KnowledgeBase | null;
   created_at: string;
