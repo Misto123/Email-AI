@@ -23,7 +23,7 @@ function textFromSource(source: Buffer) {
         if (encoding.toUpperCase() === 'Q') {
           // Quoted-printable
           text = text.replace(/_/g, ' ');
-          text = text.replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+          text = text.replace(/=([0-9A-F]{2})/gi, (_match: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
           return text;
         } else if (encoding.toUpperCase() === 'B') {
           // Base64

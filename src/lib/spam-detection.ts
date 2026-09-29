@@ -122,7 +122,7 @@ export function decodeEmailBody(raw: string): string {
         if (encoding.toUpperCase() === 'Q') {
           // Quoted-printable in encoded-word
           text = text.replace(/_/g, ' '); // Underscores are spaces in Q encoding
-          text = text.replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+          text = text.replace(/=([0-9A-F]{2})/gi, (_match: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
           return text;
         } else if (encoding.toUpperCase() === 'B') {
           // Base64
@@ -136,7 +136,7 @@ export function decodeEmailBody(raw: string): string {
 
     // Decode quoted-printable
     body = body.replace(/=\r?\n/g, ""); // Remove soft line breaks
-    body = body.replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    body = body.replace(/=([0-9A-F]{2})/gi, (_match: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
 
     // Fix UTF-8 mojibake (double-encoded UTF-8)
     // Ã¯ → ï, Ã© → é, â → ', etc.
@@ -167,7 +167,7 @@ export function decodeEmailBody(raw: string): string {
     body = body.replace(/&lt;/g, "<");
     body = body.replace(/&gt;/g, ">");
     body = body.replace(/&nbsp;/g, " ");
-    body = body.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)));
+    body = body.replace(/&#(\d+);/g, (_match: string, code: string) => String.fromCharCode(parseInt(code)));
     
     // Fix common smart quotes that weren't decoded
     body = body.replace(/â€™/g, "'"); // Right single quote
