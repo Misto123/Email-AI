@@ -1,12 +1,12 @@
 {
-  "version": "1.0.1",
-  "deployedAt": "2026-09-29T14:45:00Z",
+  "version": "1.0.2",
+  "deployedAt": "2026-09-29T15:00:00Z",
   "features": [
     "Scale features (pagination, search, filters, bulk actions)",
     "UTF-8 encoding fixes",
     "Connection status tracking",
     "Password protection",
-    "Archive functionality",
+    "Archive functionality with archived column fix",
     "Delete on archive page",
     "Visual feedback on all actions",
     "First import date tracking",
