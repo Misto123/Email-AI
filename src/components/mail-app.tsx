@@ -64,6 +64,7 @@ export function MailApp() {
   const [itemsPerPage] = useState(50);
   const [selectedEmailIds, setSelectedEmailIds] = useState<string[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [archivingEmailId, setArchivingEmailId] = useState<string | null>(null);
 
   const showNotification = (msg: string, type: "success" | "error" | "info" | "warning" = "info") => {
     setMessage(msg);
@@ -353,13 +354,15 @@ export function MailApp() {
   };
 
   const archiveEmail = async (emailId: string, draftId: string) => {
+    setArchivingEmailId(emailId);
     try {
       const response = await fetch(`/api/emails/${emailId}/archive`, {
         method: "POST",
       });
       
       if (!response.ok) {
-        throw new Error("Failed to archive email");
+        const data = await response.json();
+        throw new Error(data.error || "Failed to archive email");
       }
       
       // Remove from drafts if it has a draft
@@ -368,9 +371,12 @@ export function MailApp() {
       }
       // Remove from pending emails
       setPendingEmails((items) => items.filter((item) => item.id !== emailId));
-      showNotification("Email archived", "success");
+      showNotification("Email archived successfully!", "success");
     } catch (err) {
+      console.error("Archive error:", err);
       showNotification(err instanceof Error ? err.message : "Unable to archive email", "error");
+    } finally {
+      setArchivingEmailId(null);
     }
   };
 
@@ -1088,8 +1094,9 @@ export function MailApp() {
                         className="button"
                         onClick={() => void archiveEmail(email.id, "")}
                         style={{ background: "#3b82f6", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
+                        disabled={archivingEmailId === email.id}
                       >
-                        📁 Archive
+                        {archivingEmailId === email.id ? "⏳ Archiving..." : "📁 Archive"}
                       </button>
                       <button
                         className="button"
@@ -1192,8 +1199,9 @@ export function MailApp() {
                         className="button primary"
                         onClick={() => void archiveEmail(draft.emails.id, draft.id)}
                         style={{ background: "#3b82f6" }}
+                        disabled={archivingEmailId === draft.emails.id}
                       >
-                        📁 Archive
+                        {archivingEmailId === draft.emails.id ? "⏳ Archiving..." : "📁 Archive"}
                       </button>
                       <button
                         className="button"
@@ -1659,8 +1667,9 @@ export function MailApp() {
                     setDetailViewDraft(null);
                   }}
                   style={{ background: "#3b82f6", color: "white", padding: "0.75rem 1.5rem", fontSize: "1rem" }}
+                  disabled={archivingEmailId === detailViewEmail.id}
                 >
-                  📁 Archive
+                  {archivingEmailId === detailViewEmail.id ? "⏳ Archiving..." : "📁 Archive"}
                 </button>
               </div>
             </div>
