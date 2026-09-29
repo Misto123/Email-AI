@@ -636,7 +636,7 @@ export function MailApp() {
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                    title={`${mailbox.email}\nIMAP: ${mailbox.imap_status || 'unknown'}\nSMTP: ${mailbox.smtp_status || 'unknown'}${mailbox.last_imap_check ? '\nLast check: ' + new Date(mailbox.last_imap_check).toLocaleString() : ''}`}
+                    title={`${mailbox.email}\nIMAP: ${mailbox.imap_status || 'unknown'}\nSMTP: ${mailbox.smtp_status || 'unknown'}${mailbox.last_imap_check ? '\nLast check: ' + new Date(mailbox.last_imap_check).toLocaleString() : ''}${mailbox.first_import_date ? '\nImporting since: ' + new Date(mailbox.first_import_date).toLocaleDateString() : ''}`}
                   >
                     <span>{getStatusIcon()}</span>
                     <span style={{ fontWeight: "500" }}>{mailbox.email.split('@')[0]}</span>

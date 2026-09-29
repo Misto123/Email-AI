@@ -10,6 +10,7 @@ export interface Mailbox {
   website_url?: string | null;
   knowledge_base?: KnowledgeBase | null;
   created_at: string;
+  first_import_date?: string | null;
   last_imap_check?: string | null;
   last_smtp_check?: string | null;
   imap_status?: "online" | "offline" | "unknown";
