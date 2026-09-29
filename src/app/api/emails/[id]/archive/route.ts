@@ -8,7 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Archive the email
     const { error } = await supabaseAdmin
       .from("emails")
-      .update({ is_archived: true, folder: "archived" })
+      .update({ archived: true })
       .eq("id", id);
 
     if (error) throw error;

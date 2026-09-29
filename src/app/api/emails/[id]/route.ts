@@ -35,7 +35,6 @@ export async function PATCH(request: Request, context: Context) {
     
     if (body.status === "pending") {
       updates.archived = false;
-      updates.processed = false;
     }
     
     const { error } = await supabaseAdmin
