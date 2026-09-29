@@ -498,9 +498,18 @@ export function MailApp() {
   return (
     <main className="mail-shell">
       <header className="topbar">
-        <a className="brand" href="/">
-          inbox<span>draft</span>
-        </a>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <a className="brand" href="/">
+            inbox<span>draft</span>
+          </a>
+          <span style={{ 
+            fontSize: "0.7rem", 
+            color: "#9ca3af",
+            fontWeight: "500"
+          }}>
+            v1.0.3
+          </span>
+        </div>
         <nav>
           <a className="active" href="/drafts">
             Inbox
@@ -519,16 +528,7 @@ export function MailApp() {
           </a>
           <a href="/archive">Archive</a>
         </nav>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <EmailCheckCountdown onCheckNow={checkNow} />
-          <span style={{ 
-            fontSize: "0.75rem", 
-            color: "#9ca3af",
-            fontWeight: "500"
-          }}>
-            v1.0.2
-          </span>
-        </div>
+        <EmailCheckCountdown onCheckNow={checkNow} />
       </header>
       
       {/* OpenRouter Credits Warning Banner */}
