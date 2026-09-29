@@ -519,7 +519,16 @@ export function MailApp() {
           </a>
           <a href="/archive">Archive</a>
         </nav>
-        <EmailCheckCountdown onCheckNow={checkNow} />
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <EmailCheckCountdown onCheckNow={checkNow} />
+          <span style={{ 
+            fontSize: "0.75rem", 
+            color: "#9ca3af",
+            fontWeight: "500"
+          }}>
+            v1.0.0
+          </span>
+        </div>
       </header>
       
       {/* OpenRouter Credits Warning Banner */}
@@ -961,18 +970,29 @@ export function MailApp() {
           />
         )}
 
-        {/* Bulk Actions */}
-        {!loading && !error && pendingEmails.length > 0 && (
-          <BulkActions
-            selectedIds={selectedEmailIds}
-            totalItems={pendingEmails.length}
-            onSelectAll={handleSelectAll}
-            onDeselectAll={handleDeselectAll}
-            onArchive={() => void handleBulkAction('archive')}
-            onDelete={() => void handleBulkAction('delete')}
-            onMarkSpam={() => void handleBulkAction('mark-spam')}
-            loading={bulkActionLoading}
-          />
+        {/* Bulk Actions - Sticky when items selected */}
+        {!loading && !error && pendingEmails.length > 0 && selectedEmailIds.length > 0 && (
+          <div style={{
+            position: "sticky",
+            bottom: 0,
+            zIndex: 100,
+            background: "white",
+            borderTop: "2px solid #3b82f6",
+            boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
+            padding: "1rem",
+            marginTop: "2rem"
+          }}>
+            <BulkActions
+              selectedIds={selectedEmailIds}
+              totalItems={pendingEmails.length}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
+              onArchive={() => void handleBulkAction('archive')}
+              onDelete={() => void handleBulkAction('delete')}
+              onMarkSpam={() => void handleBulkAction('mark-spam')}
+              loading={bulkActionLoading}
+            />
+          </div>
         )}
 
         {!loading && !error && filteredDrafts.length === 0 && filteredPendingEmails.length === 0 && (

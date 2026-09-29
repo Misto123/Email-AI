@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "deployedAt": "2026-09-29T14:30:00Z",
+  "features": [
+    "Scale features (pagination, search, filters, bulk actions)",
+    "UTF-8 encoding fixes",
+    "Connection status tracking",
+    "Password protection",
+    "Archive functionality",
+    "Delete on archive page",
+    "Visual feedback on all actions"
+  ]
+}
