@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
+    
     // Get email IDs that already have drafts
     const { data: draftEmails } = await supabaseAdmin
       .from("drafts")
@@ -25,7 +30,7 @@ export async function GET() {
         spam_score,
         is_spam,
         mailboxes(email)
-      `)
+      `, { count: 'exact' })
       .eq("processed", false)
       .order("received_at", { ascending: false });
     
@@ -34,11 +39,22 @@ export async function GET() {
       query = query.not("id", "in", `(${draftEmailIds.join(",")})`);
     }
     
-    const { data, error } = await query;
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1);
+    
+    const { data, error, count } = await query;
 
     if (error) throw error;
 
-    return NextResponse.json(data || []);
+    return NextResponse.json({
+      data: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit)
+      }
+    });
   } catch (err) {
     console.error("Get pending emails error:", err);
     return NextResponse.json(

@@ -6,6 +6,9 @@ import type { Draft, PendingEmail, Mailbox } from "@/lib/mail-types";
 import { StickyNotification } from "./sticky-notification";
 import { EmailCheckCountdown } from "./email-check-countdown";
 import { parseContactFormEmail } from "@/lib/email-parser";
+import { SearchFilters, type SearchFilters as SearchFiltersType } from "./search-filters";
+import { Pagination } from "./pagination";
+import { BulkActions } from "./bulk-actions";
 
 const formatDate = (value: string | null) =>
   value
@@ -43,6 +46,24 @@ export function MailApp() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [detailViewEmail, setDetailViewEmail] = useState<PendingEmail | null>(null);
   const [detailViewDraft, setDetailViewDraft] = useState<string | null>(null);
+  
+  // New state for search, pagination, and bulk actions
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>({
+    query: "",
+    mailbox: "all",
+    dateFrom: "",
+    dateTo: "",
+    status: "all",
+    minSpam: "",
+    maxSpam: ""
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(50);
+  const [selectedEmailIds, setSelectedEmailIds] = useState<string[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const showNotification = (msg: string, type: "success" | "error" | "info" | "warning" = "info") => {
     setMessage(msg);
@@ -65,31 +86,37 @@ export function MailApp() {
     }
   };
 
-  const load = async () => {
+  const load = async (page: number = 1) => {
     try {
       setLoading(true);
       setError(null);
       
-      // Load mailboxes
+      // Load mailboxes (no pagination needed)
       const mailboxesResponse = await fetch("/api/mailboxes");
       if (mailboxesResponse.ok) {
         const mailboxesData = await mailboxesResponse.json();
         setMailboxes(mailboxesData);
       }
       
-      // Load drafts
-      const draftsResponse = await fetch("/api/drafts");
+      // Load drafts with pagination
+      const draftsResponse = await fetch(`/api/drafts?page=${page}&limit=${itemsPerPage}`);
       if (!draftsResponse.ok) {
         throw new Error(`Failed to load drafts: ${draftsResponse.statusText}`);
       }
-      const draftsData = await draftsResponse.json();
-      setDrafts(draftsData);
+      const draftsResult = await draftsResponse.json();
+      setDrafts(draftsResult.data || []);
       
-      // Load pending emails (no drafts yet)
-      const pendingResponse = await fetch("/api/emails/pending");
+      // Load pending emails with pagination
+      const pendingResponse = await fetch(`/api/emails/pending?page=${page}&limit=${itemsPerPage}`);
       if (pendingResponse.ok) {
-        const pendingData = await pendingResponse.json();
-        setPendingEmails(pendingData);
+        const pendingResult = await pendingResponse.json();
+        setPendingEmails(pendingResult.data || []);
+        
+        // Update pagination info from pending emails
+        if (pendingResult.pagination) {
+          setTotalPages(pendingResult.pagination.pages);
+          setTotalItems(pendingResult.pagination.total);
+        }
       }
       
       // Load spam count
@@ -111,6 +138,124 @@ export function MailApp() {
   useEffect(() => {
     void load();
   }, []);
+
+  // Search handler
+  const handleSearch = async (filters: SearchFiltersType) => {
+    try {
+      setLoading(true);
+      setSearchFilters(filters);
+      setSearchMode(true);
+      setCurrentPage(1);
+      setSelectedEmailIds([]);
+      
+      // Build query params
+      const params = new URLSearchParams();
+      if (filters.query) params.set('q', filters.query);
+      if (filters.mailbox && filters.mailbox !== 'all') params.set('mailbox', filters.mailbox);
+      if (filters.dateFrom) params.set('from', filters.dateFrom);
+      if (filters.dateTo) params.set('to', filters.dateTo);
+      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+      if (filters.minSpam) params.set('minSpam', filters.minSpam);
+      if (filters.maxSpam) params.set('maxSpam', filters.maxSpam);
+      params.set('page', '1');
+      params.set('limit', itemsPerPage.toString());
+      
+      const response = await fetch(`/api/emails/search?${params.toString()}`);
+      if (!response.ok) throw new Error('Search failed');
+      
+      const result = await response.json();
+      setPendingEmails(result.data.emails || []);
+      setDrafts(result.data.drafts || []);
+      
+      if (result.pagination) {
+        setTotalPages(result.pagination.pages);
+        setTotalItems(result.pagination.total);
+      }
+      
+      showNotification(`Found ${result.pagination?.total || 0} results`, 'success');
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'Search failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clear search and return to normal view
+  const handleClearSearch = () => {
+    setSearchMode(false);
+    setSearchFilters({
+      query: "",
+      mailbox: "all",
+      dateFrom: "",
+      dateTo: "",
+      status: "all",
+      minSpam: "",
+      maxSpam: ""
+    });
+    setCurrentPage(1);
+    setSelectedEmailIds([]);
+    void load(1);
+  };
+
+  // Page change handler
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedEmailIds([]);
+    if (searchMode) {
+      void handleSearch({ ...searchFilters });
+    } else {
+      void load(page);
+    }
+  };
+
+  // Bulk action handlers
+  const handleSelectAll = () => {
+    const allIds = pendingEmails.map(e => e.id);
+    setSelectedEmailIds(allIds);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedEmailIds([]);
+  };
+
+  const handleBulkAction = async (action: 'archive' | 'delete' | 'mark-spam') => {
+    if (selectedEmailIds.length === 0) return;
+    
+    const actionLabels = {
+      'archive': 'archived',
+      'delete': 'deleted',
+      'mark-spam': 'marked as spam'
+    };
+    
+    try {
+      setBulkActionLoading(true);
+      const response = await fetch('/api/emails/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailIds: selectedEmailIds,
+          action
+        })
+      });
+      
+      if (!response.ok) throw new Error('Bulk action failed');
+      
+      const result = await response.json();
+      showNotification(`${result.affected} emails ${actionLabels[action]}`, 'success');
+      
+      // Refresh data
+      setSelectedEmailIds([]);
+      if (searchMode) {
+        await handleSearch(searchFilters);
+      } else {
+        await load(currentPage);
+      }
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'Bulk action failed', 'error');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
 
   const update = async (id: string, body: Record<string, string>) => {
     const response = await fetch(`/api/drafts/${id}`, {
@@ -884,6 +1029,29 @@ export function MailApp() {
           </div>
         )}
 
+        {/* Search & Filters */}
+        {!loading && !error && (
+          <SearchFilters
+            mailboxes={mailboxes}
+            onSearch={handleSearch}
+            loading={loading}
+          />
+        )}
+
+        {/* Bulk Actions */}
+        {!loading && !error && pendingEmails.length > 0 && (
+          <BulkActions
+            selectedIds={selectedEmailIds}
+            totalItems={pendingEmails.length}
+            onSelectAll={handleSelectAll}
+            onDeselectAll={handleDeselectAll}
+            onArchive={() => void handleBulkAction('archive')}
+            onDelete={() => void handleBulkAction('delete')}
+            onMarkSpam={() => void handleBulkAction('mark-spam')}
+            loading={bulkActionLoading}
+          />
+        )}
+
         {!loading && !error && filteredDrafts.length === 0 && filteredPendingEmails.length === 0 && (
           <div className="empty">
             <strong>📭 No emails yet</strong>
@@ -928,36 +1096,57 @@ export function MailApp() {
                     key={email.id} 
                     style={isHighSpam ? { borderLeft: "4px solid #f59e0b", background: "#fffbeb" } : { borderLeft: "4px solid #d1d5db" }}
                   >
-                    <div className="draft-meta">
-                      <span>📧 {email.mailboxes.email}</span>
-                      <time>{formatDate(email.received_at)}</time>
-                    </div>
-                    
-                    {/* Spam Score Badge */}
-                    <div style={{ 
-                      display: "inline-block", 
-                      padding: "0.25rem 0.75rem", 
-                      borderRadius: "1rem", 
-                      fontSize: "0.85rem",
-                      fontWeight: "600",
-                      background: spamScore >= 60 ? "#fee2e2" : spamScore >= 40 ? "#fef3c7" : "#f0fdf4",
-                      color: spamLabel.color,
-                      marginBottom: "0.5rem"
-                    }}>
-                      {spamLabel.emoji} Spam Score: {spamScore}/100 - {spamLabel.text}
-                    </div>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+                      {/* Selection checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedEmailIds.includes(email.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEmailIds([...selectedEmailIds, email.id]);
+                          } else {
+                            setSelectedEmailIds(selectedEmailIds.filter(id => id !== email.id));
+                          }
+                        }}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          marginTop: "0.25rem",
+                          cursor: "pointer"
+                        }}
+                      />
+                      
+                      <div style={{ flex: 1 }}>
+                        <div className="draft-meta">
+                          <span>📧 {email.mailboxes.email}</span>
+                          <time>{formatDate(email.received_at)}</time>
+                        </div>
+                        
+                        {/* Spam Score Badge */}
+                        <div style={{ 
+                          display: "inline-block", 
+                          padding: "0.25rem 0.75rem", 
+                          borderRadius: "1rem", 
+                          fontSize: "0.85rem",
+                          fontWeight: "600",
+                          background: spamScore >= 60 ? "#fee2e2" : spamScore >= 40 ? "#fef3c7" : "#f0fdf4",
+                          color: spamLabel.color,
+                          marginBottom: "0.5rem"
+                        }}>
+                          {spamLabel.emoji} Spam Score: {spamScore}/100 - {spamLabel.text}
+                        </div>
 
-                    <h2>{email.subject || "(No subject)"}</h2>
-                    <p className="sender">
-                      {email.from_name || email.from_email || "Unknown sender"}{" "}
-                      <span>{email.from_email}</span>
-                    </p>
-                    <p className="original">
-                      {email.body?.slice(0, 400)}
-                      {(email.body?.length || 0) > 400 ? "..." : ""}
-                    </p>
-                    
-                    <div className="actions" style={{ marginTop: "1rem" }}>
+                        <h2>{email.subject || "(No subject)"}</h2>
+                        <p className="sender">
+                          {email.from_name || email.from_email || "Unknown sender"}{" "}
+                          <span>{email.from_email}</span>
+                        </p>
+                        <p className="original">
+                          {email.body?.slice(0, 400)}
+                          {(email.body?.length || 0) > 400 ? "..." : ""}
+                        </p>
+                        
+                        <div className="actions" style={{ marginTop: "1rem" }}>
                       <button
                         className="button primary"
                         onClick={() => void generateReply(email.id)}
@@ -994,10 +1183,24 @@ export function MailApp() {
                         🚩 Mark as Spam
                       </button>
                     </div>
+                      </div>
+                    </div>
                   </article>
                 );
               })}
             </div>
+            
+            {/* Pagination for pending emails */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                loading={loading}
+              />
+            )}
           </>
         )}
 
