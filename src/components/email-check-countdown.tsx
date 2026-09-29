@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface EmailCheckCountdownProps {
   onCheckNow?: () => Promise<void>;
@@ -10,19 +10,42 @@ export function EmailCheckCountdown({ onCheckNow }: EmailCheckCountdownProps) {
   const [checking, setChecking] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
 
+  // Load last check time from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('lastEmailCheck');
+    if (stored) {
+      setLastCheck(new Date(stored));
+    }
+  }, []);
+
   const handleCheckNow = async () => {
     if (!onCheckNow || checking) return;
     
     setChecking(true);
     try {
       await onCheckNow();
-      setLastCheck(new Date());
-      localStorage.setItem('lastEmailCheck', new Date().toISOString());
+      const now = new Date();
+      setLastCheck(now);
+      localStorage.setItem('lastEmailCheck', now.toISOString());
     } catch (error) {
       console.error('Check failed:', error);
     } finally {
       setChecking(false);
     }
+  };
+
+  const formatLastCheck = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes === 1) return '1 minute ago';
+    if (minutes < 60) return `${minutes} minutes ago`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours === 1) return '1 hour ago';
+    return `${hours} hours ago`;
   };
 
   return (
@@ -76,9 +99,13 @@ export function EmailCheckCountdown({ onCheckNow }: EmailCheckCountdownProps) {
           }}
         >
           <span>✓</span>
-          Just checked
+          Last check: {formatLastCheck(lastCheck)}
         </span>
       )}
+      
+      <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
+        (Auto-check: every 1 hour)
+      </span>
       
       <style jsx>{`
         @keyframes spin {

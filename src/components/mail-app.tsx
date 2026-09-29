@@ -698,7 +698,7 @@ export function MailApp() {
                       ℹ️ Connection Status: Not Checked Yet
                     </div>
                     <div style={{ color: "#1e3a8a", lineHeight: "1.6" }}>
-                      Your mailboxes haven't been checked yet. Connections are tested automatically every 10 minutes when checking for new emails.
+                      Your mailboxes haven't been checked yet. Connections are tested automatically every 1 hour when checking for new emails.
                       <br />
                       <strong>Next check:</strong> See countdown in top-right corner
                     </div>
@@ -727,7 +727,7 @@ export function MailApp() {
                         <li>Check your <a href="/mailboxes" style={{ color: "#dc2626", textDecoration: "underline" }}>mailbox credentials</a> are correct</li>
                         <li>Verify IMAP/SMTP settings match your email provider (Purelymail, Gmail, etc.)</li>
                         <li>Check if your email provider requires app-specific passwords</li>
-                        <li>Wait for next automatic check (every 10 minutes) to see if issue resolves</li>
+                        <li>Wait for next automatic check (every 1 hour) to see if issue resolves</li>
                       </ol>
                     </div>
                   </div>

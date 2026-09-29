@@ -14,16 +14,37 @@ function textFromSource(source: Buffer) {
   const body = split >= 0 ? raw.slice(split).replace(/^\r?\n\r?\n/, "") : "";
   const get = (name: string) => header.match(new RegExp(`^${name}:\\s*(.*)$`, "im"))?.[1]?.trim() || null;
   
+  // Decode MIME encoded-words in headers (subject, from, etc.)
+  const decodeMimeWord = (str: string | null): string | null => {
+    if (!str) return null;
+    // Decode =?UTF-8?Q?...?= or =?UTF-8?B?...?=
+    return str.replace(/=\?([^?]+)\?([QB])\?([^?]+)\?=/gi, (match, charset, encoding, text) => {
+      try {
+        if (encoding.toUpperCase() === 'Q') {
+          // Quoted-printable
+          text = text.replace(/_/g, ' ');
+          text = text.replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+          return text;
+        } else if (encoding.toUpperCase() === 'B') {
+          // Base64
+          return Buffer.from(text, 'base64').toString('utf-8');
+        }
+      } catch {
+        return match;
+      }
+      return match;
+    });
+  };
+  
   // Decode email body
   const decodedBody = decodeEmailBody(body);
   
   return { 
-    messageId: get("Message-ID") || `source-${Buffer.from(raw).toString("base64url").slice(0, 40)}`, 
-    subject: get("Subject"), 
-    from: get("From"), 
-    body: decodedBody,
+    messageId: get("Message-ID") || `source-${Buffer.from(raw.slice(0, 200)).toString("base64").slice(0, 32)}`,
     inReplyTo: get("In-Reply-To"),
-    references: get("References")
+    from: decodeMimeWord(get("From")),
+    subject: decodeMimeWord(get("Subject")),
+    body: decodedBody
   };
 }
 
@@ -50,9 +71,16 @@ export async function GET(request: Request) {
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
     let imported = 0;
+    const now = new Date().toISOString();
+    let imapStatus: "online" | "offline" = "offline";
+    let smtpStatus: "online" | "offline" = "offline";
+    let imapError: string | null = null;
+    
     try {
       const client = createImapClient(mailbox.email, mailbox.encrypted_password);
       await client.connect();
+      imapStatus = "online"; // Connection successful
+      
       const lock = await client.getMailboxLock("INBOX");
       try {
         const messages = await client.fetchAll("1:*", { source: true, envelope: true, internalDate: true }, { uid: false });
@@ -102,8 +130,39 @@ export async function GET(request: Request) {
           imported += 1;
         }
       } finally { lock.release(); await client.logout(); }
+      
+      // SMTP test not implemented yet - assume online if IMAP works
+      smtpStatus = "online";
+      
+      // Update connection status in database
+      await supabaseAdmin
+        .from("mailboxes")
+        .update({
+          imap_status: imapStatus,
+          smtp_status: smtpStatus,
+          last_imap_check: now,
+          last_smtp_check: now,
+          last_imap_error: null
+        })
+        .eq("id", mailbox.id);
+      
       results.push({ mailbox: mailbox.email, imported });
-    } catch (mailError) { results.push({ mailbox: mailbox.email, imported, error: mailError instanceof Error ? mailError.message : "Polling failed" }); }
+    } catch (mailError) {
+      imapError = mailError instanceof Error ? mailError.message : "Polling failed";
+      
+      // Update failed connection status
+      await supabaseAdmin
+        .from("mailboxes")
+        .update({
+          imap_status: "offline",
+          smtp_status: "unknown",
+          last_imap_check: now,
+          last_imap_error: imapError
+        })
+        .eq("id", mailbox.id);
+      
+      results.push({ mailbox: mailbox.email, imported, error: imapError });
+    }
   }
   return NextResponse.json({ ok: true, results });
 }

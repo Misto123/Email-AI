@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
     title: { default: "Email AI", template: "%s | Email AI" },
     description: "Human-approved AI email drafts for Purelymail inboxes.",
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+    },
 };
 
 export default function RootLayout({

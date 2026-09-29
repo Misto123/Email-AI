@@ -116,9 +116,40 @@ export function decodeEmailBody(raw: string): string {
     const parts = raw.split(/\r?\n\r?\n/);
     let body = parts.slice(1).join("\n\n");
 
+    // Decode MIME encoded-words (=?UTF-8?Q?...?= or =?UTF-8?B?...?=)
+    body = body.replace(/=\?([^?]+)\?([QB])\?([^?]+)\?=/gi, (match, charset, encoding, text) => {
+      try {
+        if (encoding.toUpperCase() === 'Q') {
+          // Quoted-printable in encoded-word
+          text = text.replace(/_/g, ' '); // Underscores are spaces in Q encoding
+          text = text.replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+          return text;
+        } else if (encoding.toUpperCase() === 'B') {
+          // Base64
+          return Buffer.from(text, 'base64').toString('utf-8');
+        }
+      } catch {
+        return match;
+      }
+      return match;
+    });
+
     // Decode quoted-printable
     body = body.replace(/=\r?\n/g, ""); // Remove soft line breaks
     body = body.replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+    // Fix UTF-8 mojibake (double-encoded UTF-8)
+    // Ã¯ → ï, Ã© → é, â → ', etc.
+    try {
+      // Check if body contains mojibake patterns
+      if (/Ã|â€|Ã©|Ã¯/.test(body)) {
+        // Try to fix by decoding as Latin-1 then re-encoding as UTF-8
+        const latin1Bytes = Array.from(body).map(char => char.charCodeAt(0));
+        body = Buffer.from(latin1Bytes).toString('utf-8');
+      }
+    } catch {
+      // If fixing fails, keep original
+    }
 
     // Clean up common artifacts
     body = body.replace(/--[0-9a-f]{20,}[\s\S]*?Content-Type:[\s\S]*?\r?\n[\s\S]*?\r?\n/g, "");
@@ -137,6 +168,13 @@ export function decodeEmailBody(raw: string): string {
     body = body.replace(/&gt;/g, ">");
     body = body.replace(/&nbsp;/g, " ");
     body = body.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)));
+    
+    // Fix common smart quotes that weren't decoded
+    body = body.replace(/â€™/g, "'"); // Right single quote
+    body = body.replace(/â€œ/g, '"'); // Left double quote
+    body = body.replace(/â€/g, '"'); // Right double quote
+    body = body.replace(/â€"/g, '–'); // En dash
+    body = body.replace(/â€"/g, '—'); // Em dash
     
     body = body.trim();
 

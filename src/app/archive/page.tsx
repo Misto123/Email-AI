@@ -66,6 +66,25 @@ export default function ArchivePage() {
     }
   };
 
+  const deleteEmail = async (emailId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this email? This cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/emails/${emailId}`, {
+        method: "DELETE"
+      });
+      
+      if (!response.ok) throw new Error("Failed to delete email");
+      
+      await load();
+    } catch (err) {
+      console.error("Error deleting email:", err);
+      alert("Failed to delete email");
+    }
+  };
+
   const filteredEmails = selectedMailbox === "all"
     ? archivedEmails
     : archivedEmails.filter(e => e.mailbox_id === selectedMailbox);
@@ -180,6 +199,19 @@ export default function ArchivePage() {
                     style={{ padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
                   >
                     📤 Unarchive
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => void deleteEmail(email.id)}
+                    style={{ 
+                      padding: "0.75rem 1.25rem", 
+                      fontSize: "0.95rem",
+                      background: "#ef4444",
+                      color: "white",
+                      marginLeft: "0.5rem"
+                    }}
+                  >
+                    🗑️ Delete
                   </button>
                 </div>
               </article>

@@ -66,8 +66,8 @@ export async function GET(request: Request) {
       }
     }
     
-    // Search drafts if status is draft or not specified
-    if (!status || status === 'draft' || status === 'all') {
+    // Search drafts if status is draft, sent or not specified
+    if (!status || status === 'draft' || status === 'sent' || status === 'all') {
       let draftQuery = supabaseAdmin
         .from("drafts")
         .select("id,email_id,mailbox_id,draft_body,status,created_at,updated_at,emails(id,mailbox_id,message_id,from_email,from_name,subject,body,received_at,spam_score,mailboxes(email))", { count: 'exact' })
