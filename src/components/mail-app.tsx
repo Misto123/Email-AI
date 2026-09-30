@@ -404,7 +404,14 @@ export function MailApp() {
         throw new Error(data.error || "Failed to generate reply");
       }
       
-      showNotification("AI reply generated successfully!", "success");
+      const result = await response.json();
+      
+      if (result.already_exists) {
+        showNotification("Draft already exists! Scroll down to see it.", "info");
+      } else {
+        showNotification("AI reply generated successfully!", "success");
+      }
+      
       // Reload to show the new draft
       await load();
       

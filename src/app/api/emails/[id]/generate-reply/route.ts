@@ -26,15 +26,18 @@ export async function POST(
     // Check if draft already exists
     const { data: existingDraft } = await supabaseAdmin
       .from("drafts")
-      .select("id")
+      .select("id,draft_body")
       .eq("email_id", id)
       .maybeSingle();
 
     if (existingDraft) {
-      return NextResponse.json(
-        { error: "Draft already exists for this email" },
-        { status: 400 }
-      );
+      console.log("[GENERATE-REPLY] Draft already exists, returning existing draft");
+      return NextResponse.json({ 
+        ok: true, 
+        draft_id: existingDraft.id, 
+        draft_body: existingDraft.draft_body,
+        already_exists: true 
+      });
     }
 
     // Generate AI reply with knowledge base
