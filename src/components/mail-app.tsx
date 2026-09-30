@@ -273,17 +273,31 @@ export function MailApp() {
   const send = async (draft: Draft) => {
     if (!window.confirm("Send this reply now?")) return;
     try {
+      console.log('[SEND] Starting send for draft:', draft.id);
+      
+      // Save any edits first
       await update(draft.id, { draft_body: draft.draft_body });
+      console.log('[SEND] Draft saved, now sending...');
+      
       const response = await fetch(`/api/drafts/${draft.id}/send`, {
         method: "POST",
       });
+      
+      console.log('[SEND] Response status:', response.status);
+      
       if (!response.ok) {
         const data = await response.json();
+        console.error('[SEND] Send failed:', data);
         throw new Error(data.error || "Failed to send");
       }
-      showNotification("Reply sent successfully!", "success");
+      
+      const result = await response.json();
+      console.log('[SEND] Send successful:', result);
+      
+      showNotification("Reply sent successfully! ✅", "success");
       void load();
     } catch (err) {
+      console.error('[SEND] Send error:', err);
       showNotification(err instanceof Error ? err.message : "Unable to send reply", "error");
     }
   };
@@ -385,12 +399,17 @@ export function MailApp() {
       setGeneratingFor(emailId);
       showNotification("Generating AI reply...", "info");
       
+      console.log('[GENERATE] Starting for emailId:', emailId);
+      
       const response = await fetch(`/api/emails/${emailId}/generate-reply`, {
         method: "POST",
       });
       
+      console.log('[GENERATE] Response status:', response.status);
+      
       if (!response.ok) {
         const data = await response.json();
+        console.error('[GENERATE] Generation failed:', data);
         
         // Check for OpenRouter credit error
         if (data.error && (data.error.includes("Insufficient credits") || data.error.includes("402"))) {
@@ -405,14 +424,15 @@ export function MailApp() {
       }
       
       const result = await response.json();
+      console.log('[GENERATE] Result:', result);
       
       if (result.already_exists) {
-        showNotification("Draft already exists! Scroll down to see it.", "info");
+        showNotification("✅ Draft already exists", "info");
       } else {
-        showNotification("AI reply generated successfully!", "success");
+        showNotification("✅ AI reply generated successfully!", "success");
       }
       
-      // Reload to show the new draft
+      // Reload to show the draft
       await load();
       
       // Auto-scroll to drafts section after a short delay
@@ -430,6 +450,7 @@ export function MailApp() {
         }
       }, 500);
     } catch (err) {
+      console.error('[GENERATE] Error:', err);
       showNotification(err instanceof Error ? err.message : "Unable to generate reply", "error");
     } finally {
       setGeneratingFor(null);

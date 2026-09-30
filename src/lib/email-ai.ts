@@ -279,7 +279,9 @@ IMPORTANT LANGUAGE INSTRUCTIONS:
   ];
   
   // Try OpenRouter first
+  let usingFallback = false;
   try {
+    console.log('[AI] Trying OpenRouter with model:', model);
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
@@ -288,18 +290,20 @@ IMPORTANT LANGUAGE INSTRUCTIONS:
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.warn("OpenRouter error, falling back to DeepSeek:", errorText);
+      console.warn("[AI] OpenRouter error, falling back to DeepSeek:", errorText);
+      usingFallback = true;
       throw new Error("FALLBACK_TO_DEEPSEEK");
     }
     
     const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const reply = data.choices?.[0]?.message?.content?.trim();
     if (!reply) throw new Error("OpenRouter returned an empty draft");
+    console.log('[AI] OpenRouter success, reply length:', reply.length);
     return cleanAIReply(reply);
     
   } catch (error) {
     // Fallback to DeepSeek if OpenRouter fails for ANY reason
-    console.log("OpenRouter failed, using DeepSeek fallback...");
+    console.log("[AI] OpenRouter failed, using DeepSeek fallback...");
     
     try {
       const deepseekResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -317,6 +321,7 @@ IMPORTANT LANGUAGE INSTRUCTIONS:
       
       if (!deepseekResponse.ok) {
         const errorText = await deepseekResponse.text();
+        console.error('[AI] DeepSeek fallback failed:', errorText);
         throw new Error(`DeepSeek fallback also failed: ${errorText}`);
       }
       
@@ -324,8 +329,10 @@ IMPORTANT LANGUAGE INSTRUCTIONS:
       const deepseekReply = deepseekData.choices?.[0]?.message?.content?.trim();
       if (!deepseekReply) throw new Error("DeepSeek returned an empty draft");
       
+      console.log('[AI] DeepSeek fallback success, reply length:', deepseekReply.length);
       return cleanAIReply(deepseekReply);
     } catch (fallbackError) {
+      console.error('[AI] Both OpenRouter and DeepSeek failed:', fallbackError);
       // If both fail, throw the original OpenRouter error
       console.error("Both OpenRouter and DeepSeek failed:", error, fallbackError);
       throw error;
