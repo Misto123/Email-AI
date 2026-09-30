@@ -43,10 +43,13 @@ export async function POST(
       );
     }
 
-    console.log(`[SEND] Draft found, sending from ${draft.mailboxes.email} to ${draft.emails.from_email}`);
+    const mailbox = Array.isArray(draft.mailboxes) ? draft.mailboxes[0] : draft.mailboxes;
+    const email = Array.isArray(draft.emails) ? draft.emails[0] : draft.emails;
+
+    console.log(`[SEND] Draft found, sending from ${mailbox.email} to ${email.from_email}`);
 
     // Decrypt mailbox password
-    const password = decryptMailboxPassword(draft.mailboxes.encrypted_password);
+    const password = decryptMailboxPassword(mailbox.encrypted_password);
 
     // Create SMTP transporter for Purelymail
     const transporter = nodemailer.createTransport({
@@ -54,19 +57,19 @@ export async function POST(
       port: 587,
       secure: false,
       auth: {
-        user: draft.mailboxes.email,
+        user: mailbox.email,
         pass: password,
       },
     });
 
     // Send email
     const info = await transporter.sendMail({
-      from: draft.mailboxes.email,
-      to: draft.emails.from_email,
-      subject: `Re: ${draft.emails.subject}`,
+      from: mailbox.email,
+      to: email.from_email,
+      subject: `Re: ${email.subject}`,
       text: draft.draft_body,
-      inReplyTo: draft.emails.message_id || undefined,
-      references: draft.emails.message_id || undefined,
+      inReplyTo: email.message_id || undefined,
+      references: email.message_id || undefined,
     });
 
     console.log(`[SEND] Email sent successfully:`, info.messageId);
