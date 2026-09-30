@@ -44,13 +44,21 @@ export default function SpamPage() {
       if (!draftsRes.ok) throw new Error("Failed to load drafts");
       if (!pendingRes.ok) throw new Error("Failed to load pending emails");
       
-      const drafts = await draftsRes.json();
-      const pending = await pendingRes.json();
+      const draftsData = await draftsRes.json();
+      const pendingData = await pendingRes.json();
+      
+      // Handle {data: [...]} format
+      const drafts = Array.isArray(draftsData) ? draftsData : (draftsData.data || []);
+      const pending = Array.isArray(pendingData) ? pendingData : (pendingData.data || []);
+      
+      console.log('[SPAM] Loaded drafts:', drafts.length, 'pending:', pending.length);
       
       // Filter spam emails (manually marked OR score >= 50) from both
       const spamDrafts = drafts.filter((d: Draft) => 
         d.emails.is_spam || (d.emails.spam_score || 0) >= 50
       );
+      
+      console.log('[SPAM] Spam drafts found:', spamDrafts.length);
       
       // Convert pending emails to draft-like format for display
       const spamPending = pending
@@ -63,7 +71,12 @@ export default function SpamPage() {
           status: "pending"
         }));
       
-      setSpamEmails([...spamDrafts, ...spamPending]);
+      console.log('[SPAM] Spam pending found:', spamPending.length);
+      
+      const allSpam = [...spamDrafts, ...spamPending];
+      console.log('[SPAM] Total spam emails:', allSpam.length);
+      
+      setSpamEmails(allSpam);
       setSelected(new Set()); // Clear selection on reload
     } catch (err) {
       console.error("Error loading spam:", err);
