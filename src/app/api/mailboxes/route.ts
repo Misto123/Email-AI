@@ -4,7 +4,15 @@ import { getMailboxes } from "@/lib/mail-db";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
-  try { return NextResponse.json(await getMailboxes()); } catch { return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 }); }
+  try { 
+    const mailboxes = await getMailboxes();
+    return NextResponse.json(mailboxes);
+  } catch (error) {
+    console.error("[MAILBOXES] Failed to load:", error);
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : "Unable to load mailboxes" 
+    }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

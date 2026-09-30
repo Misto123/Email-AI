@@ -66,7 +66,7 @@ export async function GET(request: Request) {
   const spamThreshold = settings?.spam_threshold || 80;
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,first_import_date");
+  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
   if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
@@ -128,15 +128,6 @@ export async function GET(request: Request) {
           // Just import emails and let user generate on-demand
           
           imported += 1;
-          
-          // Set first_import_date if this is the first email imported
-          if (imported === 1 && !mailbox.first_import_date) {
-            await supabaseAdmin
-              .from("mailboxes")
-              .update({ first_import_date: now })
-              .eq("id", mailbox.id);
-            console.log(`[${mailbox.email}] Set first_import_date: ${now}`);
-          }
         }
       } finally { lock.release(); await client.logout(); }
       
