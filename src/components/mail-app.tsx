@@ -289,10 +289,11 @@ export function MailApp() {
   };
 
   const remove = async (id: string) => {
+    // Only deletes the draft reply, NOT the original email
     try {
       await update(id, { status: "deleted" });
       setDrafts((items) => items.filter((item) => item.id !== id));
-      showNotification("Draft deleted", "success");
+      showNotification("Draft deleted (email kept)", "success");
     } catch {
       showNotification("Unable to delete draft", "error");
     }
@@ -324,7 +325,6 @@ export function MailApp() {
   };
 
   const markAsSpam = async (emailId: string, draftId: string) => {
-    if (!window.confirm("Mark this as spam? This will help improve spam detection.")) return;
     try {
       console.log('[markAsSpam] Starting for emailId:', emailId, 'draftId:', draftId);
       const response = await fetch(`/api/emails/${emailId}/mark-spam`, {
