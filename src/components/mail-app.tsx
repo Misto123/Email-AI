@@ -426,11 +426,7 @@ export function MailApp() {
       const result = await response.json();
       console.log('[GENERATE] Result:', result);
       
-      if (result.already_exists) {
-        showNotification("✅ Draft already exists", "info");
-      } else {
-        showNotification("✅ AI reply generated successfully!", "success");
-      }
+      showNotification("✅ AI reply generated!", "success");
       
       // Reload to show the draft
       await load();
@@ -454,6 +450,47 @@ export function MailApp() {
       showNotification(err instanceof Error ? err.message : "Unable to generate reply", "error");
     } finally {
       setGeneratingFor(null);
+    }
+  };
+
+  const createManualDraft = async (emailId: string) => {
+    try {
+      console.log('[MANUAL] Creating manual draft for emailId:', emailId);
+      
+      // Create empty draft
+      const response = await fetch(`/api/drafts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email_id: emailId,
+          draft_body: "Write your reply here..."
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create manual draft");
+      }
+      
+      showNotification("✅ Manual draft created!", "success");
+      await load();
+      
+      // Auto-scroll to drafts
+      setTimeout(() => {
+        const allH2 = Array.from(document.querySelectorAll('h2'));
+        const draftsHeading = allH2.find(h => h.textContent?.includes('AI Drafts'));
+        if (draftsHeading) {
+          draftsHeading.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          const firstDraft = document.querySelector('.draft-card');
+          if (firstDraft) {
+            firstDraft.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+      }, 500);
+    } catch (err) {
+      console.error('[MANUAL] Error:', err);
+      showNotification(err instanceof Error ? err.message : "Unable to create manual draft", "error");
     }
   };
 
@@ -1117,7 +1154,7 @@ export function MailApp() {
                           {(email.body?.length || 0) > 400 ? "..." : ""}
                         </p>
                         
-                        <div className="actions" style={{ marginTop: "1rem" }}>
+                         <div className="actions" style={{ marginTop: "1rem" }}>
                       <button
                         className="button primary"
                         onClick={() => void generateReply(email.id)}
@@ -1130,6 +1167,13 @@ export function MailApp() {
                         }}
                       >
                         {isGenerating ? "⏳ Generating..." : "✨ Generate AI Reply"}
+                      </button>
+                      <button
+                        className="button"
+                        onClick={() => void createManualDraft(email.id)}
+                        style={{ background: "#8b5cf6", color: "white", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
+                      >
+                        ✍️ Manual Reply
                       </button>
                       <button
                         className="button"

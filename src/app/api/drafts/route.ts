@@ -31,3 +31,58 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unable to load drafts" }, { status: 500 });
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { email_id, draft_body } = body;
+
+    if (!email_id) {
+      return NextResponse.json({ error: "email_id is required" }, { status: 400 });
+    }
+
+    console.log('[MANUAL-DRAFT] Creating manual draft for email:', email_id);
+
+    // Get email to find mailbox_id
+    const { data: email, error: emailError } = await supabaseAdmin
+      .from("emails")
+      .select("id,mailbox_id")
+      .eq("id", email_id)
+      .single();
+
+    if (emailError || !email) {
+      return NextResponse.json({ error: "Email not found" }, { status: 404 });
+    }
+
+    // Delete existing draft if any
+    await supabaseAdmin
+      .from("drafts")
+      .delete()
+      .eq("email_id", email_id);
+
+    // Create new draft
+    const { data: draft, error: draftError } = await supabaseAdmin
+      .from("drafts")
+      .insert({
+        email_id: email.id,
+        mailbox_id: email.mailbox_id,
+        draft_body: draft_body || "Write your reply here...",
+      })
+      .select()
+      .single();
+
+    if (draftError || !draft) {
+      throw draftError || new Error("Failed to create draft");
+    }
+
+    console.log('[MANUAL-DRAFT] Draft created:', draft.id);
+
+    return NextResponse.json({ ok: true, draft_id: draft.id });
+  } catch (err) {
+    console.error('[MANUAL-DRAFT] Error:', err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to create draft" },
+      { status: 500 }
+    );
+  }
+}

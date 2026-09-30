@@ -23,7 +23,7 @@ export async function POST(
       );
     }
 
-    // Check if draft already exists
+    // Check if draft already exists - if so, delete it and regenerate
     const { data: existingDraft } = await supabaseAdmin
       .from("drafts")
       .select("id,draft_body")
@@ -31,13 +31,11 @@ export async function POST(
       .maybeSingle();
 
     if (existingDraft) {
-      console.log("[GENERATE-REPLY] Draft already exists, returning existing draft");
-      return NextResponse.json({ 
-        ok: true, 
-        draft_id: existingDraft.id, 
-        draft_body: existingDraft.draft_body,
-        already_exists: true 
-      });
+      console.log("[GENERATE-REPLY] Draft exists, deleting and regenerating...");
+      await supabaseAdmin
+        .from("drafts")
+        .delete()
+        .eq("id", existingDraft.id);
     }
 
     // Generate AI reply with knowledge base
