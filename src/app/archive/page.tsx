@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { PendingEmail, Mailbox } from "@/lib/mail-types";
+import { AppHeader } from "@/components/app-header";
 
 const formatDate = (value: string | null) =>
   value
@@ -91,18 +92,7 @@ export default function ArchivePage() {
 
   return (
     <main className="mail-shell">
-      <header className="topbar">
-        <a className="brand" href="/">
-          inbox<span>draft</span>
-        </a>
-        <nav>
-          <a href="/drafts">Inbox</a>
-          <a href="/mailboxes">Mailboxes</a>
-          <a href="/settings">Settings</a>
-          <a href="/spam">Spam</a>
-          <a className="active" href="/archive">Archive</a>
-        </nav>
-      </header>
+      <AppHeader activePage="archive" />
       
       <section className="content">
         <div className="page-heading">

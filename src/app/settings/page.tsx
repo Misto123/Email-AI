@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { StickyNotification } from "@/components/sticky-notification";
+import { AppHeader } from "@/components/app-header";
 
 export default function SettingsPage() {
   const [model, setModel] = useState("openai/gpt-5.6-luna");
@@ -70,20 +71,7 @@ export default function SettingsPage() {
 
   return (
     <main className="mail-shell">
-      <header className="topbar">
-        <a className="brand" href="/">
-          inbox<span>draft</span>
-        </a>
-        <nav>
-          <a href="/drafts">Inbox</a>
-          <a href="/mailboxes">Mailboxes</a>
-          <a className="active" href="/settings">
-            Settings
-          </a>
-          <a href="/spam">Spam</a>
-          <a href="/archive">Archive</a>
-        </nav>
-      </header>
+      <AppHeader activePage="settings" />
       <section className="content narrow">
         <p className="eyebrow">Configuration</p>
         <h1>Settings</h1>

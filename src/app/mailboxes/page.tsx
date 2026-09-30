@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { Mailbox } from "@/lib/mail-types";
+import { AppHeader } from "@/components/app-header";
 
 export default function MailboxesPage() {
   const [items, setItems] = useState<Mailbox[]>([]);
@@ -69,20 +70,7 @@ export default function MailboxesPage() {
 
   return (
     <main className="mail-shell">
-      <header className="topbar">
-        <a className="brand" href="/">
-          inbox<span>draft</span>
-        </a>
-        <nav>
-          <a href="/drafts">Inbox</a>
-          <a className="active" href="/mailboxes">
-            Mailboxes
-          </a>
-          <a href="/settings">Settings</a>
-          <a href="/spam">Spam</a>
-          <a href="/archive">Archive</a>
-        </nav>
-      </header>
+      <AppHeader activePage="mailboxes" />
       <section className="content">
         <div className="page-heading">
           <div>
