@@ -22,70 +22,43 @@ export async function PATCH(request: Request, { params }: Context) {
     };
     
     console.log('[MAILBOX-UPDATE] Updating mailbox:', id);
-    console.log('[MAILBOX-UPDATE] Request body:', Object.keys(body));
+    console.log('[MAILBOX-UPDATE] Request body keys:', Object.keys(body));
     
-    // Handle IMAP/SMTP config separately using SQL function to bypass PostgREST cache issues
-    if (body.imap_host !== undefined || body.imap_port !== undefined || 
-        body.smtp_host !== undefined || body.smtp_port !== undefined || 
-        body.encrypted_password || body.password) {
-      
-      const encryptedPass = body.password ? encryptMailboxPassword(body.password) 
-                          : body.encrypted_password ? encryptMailboxPassword(body.encrypted_password) 
-                          : null;
-      
-      const { data, error } = await supabaseAdmin.rpc('update_mailbox_config', {
-        p_mailbox_id: id,
-        p_imap_host: body.imap_host || null,
-        p_imap_port: body.imap_port || null,
-        p_smtp_host: body.smtp_host || null,
-        p_smtp_port: body.smtp_port || null,
-        p_encrypted_password: encryptedPass
-      });
-      
-      if (error) {
-        console.error('[MAILBOX-UPDATE] RPC error:', error);
-        throw error;
-      }
-      
-      console.log('[MAILBOX-UPDATE] IMAP/SMTP config updated via RPC');
-      
-      // If there are other fields, update them too
-      const otherUpdates: Record<string, string | boolean> = {};
-      if (body.email?.trim()) otherUpdates.email = body.email.trim();
-      if (typeof body.ai_enabled === "boolean") otherUpdates.ai_enabled = body.ai_enabled;
-      if (body.prompt !== undefined) otherUpdates.prompt = body.prompt.trim();
-      if (body.reply_language) otherUpdates.reply_language = body.reply_language;
-      if (body.default_language) otherUpdates.default_language = body.default_language;
-      
-      if (Object.keys(otherUpdates).length > 0) {
-        const { error: updateError } = await supabaseAdmin.from("mailboxes").update(otherUpdates).eq("id", id);
-        if (updateError) {
-          console.error('[MAILBOX-UPDATE] Other fields error:', updateError);
-        }
-      }
-      
-      return NextResponse.json({ ok: true, data });
+    // Build config object for SQL function
+    const config: Record<string, any> = {};
+    
+    if (body.imap_host !== undefined) config.imap_host = body.imap_host;
+    if (body.imap_port !== undefined) config.imap_port = body.imap_port;
+    if (body.smtp_host !== undefined) config.smtp_host = body.smtp_host;
+    if (body.smtp_port !== undefined) config.smtp_port = body.smtp_port;
+    if (body.default_language) config.default_language = body.default_language;
+    if (body.reply_language) config.reply_language = body.reply_language;
+    if (typeof body.ai_enabled === "boolean") config.ai_enabled = body.ai_enabled;
+    if (body.prompt !== undefined) config.prompt = body.prompt;
+    
+    // Handle password encryption
+    if (body.password) {
+      config.encrypted_password = encryptMailboxPassword(body.password);
+    } else if (body.encrypted_password) {
+      config.encrypted_password = encryptMailboxPassword(body.encrypted_password);
     }
     
-    // Handle non-IMAP/SMTP updates normally
-    const updates: Record<string, string | boolean> = {};
-    if (body.email?.trim()) updates.email = body.email.trim();
-    if (typeof body.ai_enabled === "boolean") updates.ai_enabled = body.ai_enabled;
-    if (body.prompt !== undefined) updates.prompt = body.prompt.trim();
-    if (body.reply_language) updates.reply_language = body.reply_language;
-    if (body.default_language) updates.default_language = body.default_language;
+    console.log('[MAILBOX-UPDATE] Config keys:', Object.keys(config));
     
-    console.log('[MAILBOX-UPDATE] Non-IMAP updates:', updates);
-    
-    const { data, error } = await supabaseAdmin.from("mailboxes").update(updates).eq("id", id).select();
+    // Use SQL function to bypass PostgREST cache
+    const { data, error } = await supabaseAdmin.rpc('update_mailbox_simple', {
+      mailbox_id: id,
+      config: config
+    });
     
     if (error) {
-      console.error('[MAILBOX-UPDATE] Supabase error:', error);
+      console.error('[MAILBOX-UPDATE] RPC error:', error);
       throw error;
     }
     
-    console.log('[MAILBOX-UPDATE] Success');
+    console.log('[MAILBOX-UPDATE] Success via RPC function');
     return NextResponse.json({ ok: true, data });
+    
   } catch (error) { 
     console.error('[MAILBOX-UPDATE] Error:', error);
     return NextResponse.json({ 
