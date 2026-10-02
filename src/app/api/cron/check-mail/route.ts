@@ -66,7 +66,7 @@ export async function GET(request: Request) {
   const spamThreshold = settings?.spam_threshold || 80;
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
+  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,smtp_host,smtp_port,password");
   if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
@@ -123,6 +123,51 @@ export async function GET(request: Request) {
           }
           
           console.log(`[${mailbox.email}] Saved email ${parsed.messageId} (spam: ${spamScore})`);
+          
+          // Check forward rules and auto-forward if matches
+          try {
+            const { data: rules } = await supabaseAdmin
+              .from("forward_rules")
+              .select("*")
+              .eq("enabled", true);
+            
+            if (rules && rules.length > 0) {
+              for (const rule of rules) {
+                if (parsed.subject?.toLowerCase().includes(rule.subject_contains.toLowerCase())) {
+                  console.log(`[FORWARD] Email matches rule: "${rule.subject_contains}" → forwarding to ${rule.forward_to}`);
+                  
+                  // Forward via SMTP (BCC style - send copy)
+                  try {
+                    const smtpConfig = {
+                      host: mailbox.smtp_host,
+                      port: mailbox.smtp_port,
+                      secure: mailbox.smtp_port === 465,
+                      auth: { user: mailbox.email, pass: mailbox.password }
+                    };
+                    
+                    const nodemailer = await import("nodemailer");
+                    const transporter = nodemailer.default.createTransport(smtpConfig);
+                    
+                    await transporter.sendMail({
+                      from: mailbox.email,
+                      to: rule.forward_to,
+                      subject: `FWD: ${parsed.subject || "(No subject)"}`,
+                      text: `Forwarded from: ${sender.name || sender.email}\n\n${parsed.body || ""}`,
+                      html: `<p><strong>Forwarded from:</strong> ${sender.name || sender.email} &lt;${sender.email}&gt;</p><hr/><pre>${parsed.body || ""}</pre>`
+                    });
+                    
+                    console.log(`[FORWARD] Successfully forwarded to ${rule.forward_to}`);
+                  } catch (forwardError) {
+                    console.error(`[FORWARD] Failed to forward:`, forwardError);
+                  }
+                  
+                  break; // Only forward once per email (first matching rule)
+                }
+              }
+            }
+          } catch (forwardError) {
+            console.error(`[FORWARD] Error checking rules:`, forwardError);
+          }
           
           // DON'T auto-generate AI drafts anymore - user will click "Generate Reply" button
           // Just import emails and let user generate on-demand

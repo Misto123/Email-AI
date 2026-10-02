@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { EmailCheckCountdown } from "@/components/email-check-countdown";
 
 interface AppHeaderProps {
-  activePage?: "inbox" | "mailboxes" | "settings" | "spam" | "archive";
+  activePage?: "inbox" | "mailboxes" | "settings" | "spam" | "archive" | "forward";
   onCheckNow?: () => Promise<void>;
 }
 
@@ -59,6 +59,9 @@ export function AppHeader({ activePage = "inbox", onCheckNow }: AppHeaderProps) 
         </a>
         <a className={activePage === "mailboxes" ? "active" : ""} href="/mailboxes">
           Mailboxes
+        </a>
+        <a className={activePage === "forward" ? "active" : ""} href="/bram-forward">
+          📨 Forward
         </a>
         <a className={activePage === "settings" ? "active" : ""} href="/settings">
           Settings

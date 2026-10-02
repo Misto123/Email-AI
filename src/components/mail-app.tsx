@@ -612,6 +612,7 @@ export function MailApp() {
             Inbox
           </a>
           <a href="/mailboxes">Mailboxes</a>
+          <a href="/bram-forward">📨 Forward</a>
           <a href="/settings">Settings</a>
           <a href="/spam">
             Spam {spamCount > 0 && <span style={{ 
