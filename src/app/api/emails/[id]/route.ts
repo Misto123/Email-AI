@@ -1,54 +1,48 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-type Context = { params: Promise<{ id: string }> };
-
-export async function DELETE(request: Request, context: Context) {
+// DELETE - Permanently delete an email and all associated drafts
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await context.params;
-    
-    // Permanently delete the email
-    const { error } = await supabaseAdmin
+    const { id } = await params;
+
+    console.log(`[DELETE-EMAIL] Deleting email: ${id}`);
+
+    // First delete all drafts associated with this email
+    const { error: draftsError } = await supabaseAdmin
+      .from("drafts")
+      .delete()
+      .eq("email_id", id);
+
+    if (draftsError) {
+      console.error("[DELETE-EMAIL] Failed to delete drafts:", draftsError);
+      throw new Error("Failed to delete drafts");
+    }
+
+    // Then delete the email itself
+    const { error: emailError } = await supabaseAdmin
       .from("emails")
       .delete()
       .eq("id", id);
-    
-    if (error) throw error;
-    
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("Delete email error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete email" },
-      { status: 500 }
-    );
-  }
-}
 
-export async function PATCH(request: Request, context: Context) {
-  try {
-    const { id } = await context.params;
-    const body = await request.json() as { status?: string };
-    
-    // Update email status (for unarchive)
-    const updates: Record<string, boolean> = {};
-    
-    if (body.status === "pending") {
-      updates.archived = false;
+    if (emailError) {
+      console.error("[DELETE-EMAIL] Failed to delete email:", emailError);
+      throw new Error("Failed to delete email");
     }
-    
-    const { error } = await supabaseAdmin
-      .from("emails")
-      .update(updates)
-      .eq("id", id);
-    
-    if (error) throw error;
-    
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("Update email error:", error);
+
+    console.log(`[DELETE-EMAIL] Successfully deleted email and drafts: ${id}`);
+
+    return NextResponse.json({ 
+      ok: true, 
+      message: "Email permanently deleted" 
+    });
+  } catch (err) {
+    console.error("[DELETE-EMAIL] Error:", err);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update email" },
+      { error: err instanceof Error ? err.message : "Failed to delete email" },
       { status: 500 }
     );
   }

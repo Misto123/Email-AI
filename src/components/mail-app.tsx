@@ -319,6 +319,31 @@ export function MailApp() {
     }
   };
 
+  const deleteEmail = async (emailId: string, draftId: string) => {
+    if (!window.confirm("⚠️ DELETE ENTIRE EMAIL?\n\nThis will permanently delete:\n- The original email\n- Your draft reply\n- Email history\n\nThis cannot be undone. Are you sure?")) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/emails/${emailId}`, {
+        method: "DELETE",
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete email");
+      }
+      
+      // Remove from UI
+      setDrafts((items) => items.filter((item) => item.id !== draftId));
+      setPendingEmails((items) => items.filter((item) => item.id !== emailId));
+      showNotification("Email permanently deleted", "success");
+    } catch (err) {
+      console.error("Delete email error:", err);
+      showNotification(err instanceof Error ? err.message : "Unable to delete email", "error");
+    }
+  };
+
   const remove = async (id: string) => {
     // Only deletes the draft reply, NOT the original email
     try {
@@ -1407,6 +1432,14 @@ export function MailApp() {
                     onClick={() => void remove(draft.id)}
                   >
                     🗑️ Delete Draft
+                  </button>
+                  <button
+                    className="button danger"
+                    onClick={() => void deleteEmail(draft.emails.id, draft.id)}
+                    style={{ background: "#991b1b", border: "2px solid #dc2626", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
+                    title="Permanently delete the entire email and draft"
+                  >
+                    ⛔ Delete Email
                   </button>
                 </div>
               </article>
