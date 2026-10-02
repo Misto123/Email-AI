@@ -17,6 +17,10 @@ export interface Mailbox {
   smtp_status?: "online" | "offline" | "unknown";
   last_imap_error?: string | null;
   last_smtp_error?: string | null;
+  imap_host?: string | null;
+  imap_port?: number | null;
+  smtp_host?: string | null;
+  smtp_port?: number | null;
 }
 
 export interface EmailRecord {

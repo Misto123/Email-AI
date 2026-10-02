@@ -9,6 +9,20 @@ export default function MailboxesPage() {
   const [items, setItems] = useState<Mailbox[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedMailbox, setExpandedMailbox] = useState<string | null>(null);
+  const [editingConfig, setEditingConfig] = useState<{
+    imap_host: string;
+    imap_port: number;
+    smtp_host: string;
+    smtp_port: number;
+    password: string;
+  }>({
+    imap_host: "",
+    imap_port: 993,
+    smtp_host: "",
+    smtp_port: 465,
+    password: ""
+  });
 
   const load = async () => {
     try {
@@ -257,6 +271,187 @@ export default function MailboxesPage() {
                       >
                         🧠 Edit Knowledge Base
                       </a>
+                    </div>
+
+                    {/* IMAP/SMTP Configuration */}
+                    <div style={{ marginTop: "0.75rem", borderTop: "1px solid #e5e7eb", paddingTop: "0.75rem" }}>
+                      <button
+                        onClick={() => {
+                          if (expandedMailbox === mailbox.id) {
+                            setExpandedMailbox(null);
+                          } else {
+                            setExpandedMailbox(mailbox.id);
+                            setEditingConfig({
+                              imap_host: mailbox.imap_host || "imap.purelymail.com",
+                              imap_port: mailbox.imap_port || 993,
+                              smtp_host: mailbox.smtp_host || "smtp.purelymail.com",
+                              smtp_port: mailbox.smtp_port || 465,
+                              password: ""
+                            });
+                          }
+                        }}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          background: expandedMailbox === mailbox.id ? "#3b82f6" : "#f3f4f6",
+                          color: expandedMailbox === mailbox.id ? "white" : "#374151",
+                          border: "1px solid " + (expandedMailbox === mailbox.id ? "#3b82f6" : "#d1d5db"),
+                          borderRadius: "0.375rem",
+                          fontSize: "0.875rem",
+                          fontWeight: "500",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ⚙️ {expandedMailbox === mailbox.id ? "Hide" : "Configure"} IMAP/SMTP
+                      </button>
+
+                      {expandedMailbox === mailbox.id && (
+                        <div style={{ 
+                          marginTop: "1rem", 
+                          padding: "1rem", 
+                          background: "#f9fafb", 
+                          borderRadius: "0.5rem",
+                          border: "1px solid #e5e7eb"
+                        }}>
+                          <h4 style={{ marginBottom: "1rem", fontSize: "0.95rem", fontWeight: "600", color: "#111827" }}>
+                            📧 Email Server Configuration
+                          </h4>
+                          
+                          <div style={{ display: "grid", gap: "1rem" }}>
+                            {/* IMAP Settings */}
+                            <div style={{ padding: "0.75rem", background: "white", borderRadius: "0.375rem", border: "1px solid #e5e7eb" }}>
+                              <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "#374151", marginBottom: "0.75rem" }}>
+                                📥 IMAP (Incoming Mail)
+                              </div>
+                              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.5rem" }}>
+                                <div>
+                                  <label style={{ fontSize: "0.8rem", color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>
+                                    Host
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingConfig.imap_host}
+                                    onChange={(e) => setEditingConfig({...editingConfig, imap_host: e.target.value})}
+                                    placeholder="imap.purelymail.com"
+                                    style={{ width: "100%", padding: "0.5rem", fontSize: "0.875rem", border: "1px solid #d1d5db", borderRadius: "0.375rem" }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: "0.8rem", color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>
+                                    Port
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={editingConfig.imap_port}
+                                    onChange={(e) => setEditingConfig({...editingConfig, imap_port: parseInt(e.target.value)})}
+                                    style={{ width: "100%", padding: "0.5rem", fontSize: "0.875rem", border: "1px solid #d1d5db", borderRadius: "0.375rem" }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* SMTP Settings */}
+                            <div style={{ padding: "0.75rem", background: "white", borderRadius: "0.375rem", border: "1px solid #e5e7eb" }}>
+                              <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "#374151", marginBottom: "0.75rem" }}>
+                                📤 SMTP (Outgoing Mail)
+                              </div>
+                              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.5rem" }}>
+                                <div>
+                                  <label style={{ fontSize: "0.8rem", color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>
+                                    Host
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editingConfig.smtp_host}
+                                    onChange={(e) => setEditingConfig({...editingConfig, smtp_host: e.target.value})}
+                                    placeholder="smtp.purelymail.com"
+                                    style={{ width: "100%", padding: "0.5rem", fontSize: "0.875rem", border: "1px solid #d1d5db", borderRadius: "0.375rem" }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: "0.8rem", color: "#6b7280", display: "block", marginBottom: "0.25rem" }}>
+                                    Port
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={editingConfig.smtp_port}
+                                    onChange={(e) => setEditingConfig({...editingConfig, smtp_port: parseInt(e.target.value)})}
+                                    style={{ width: "100%", padding: "0.5rem", fontSize: "0.875rem", border: "1px solid #d1d5db", borderRadius: "0.375rem" }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Password */}
+                            <div style={{ padding: "0.75rem", background: "white", borderRadius: "0.375rem", border: "1px solid #e5e7eb" }}>
+                              <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "#374151", marginBottom: "0.75rem" }}>
+                                🔑 Password
+                              </div>
+                              <input
+                                type="password"
+                                value={editingConfig.password}
+                                onChange={(e) => setEditingConfig({...editingConfig, password: e.target.value})}
+                                placeholder="Enter your email password"
+                                style={{ width: "100%", padding: "0.5rem", fontSize: "0.875rem", border: "1px solid #d1d5db", borderRadius: "0.375rem" }}
+                              />
+                              <small style={{ display: "block", color: "#6b7280", marginTop: "0.25rem", fontSize: "0.75rem" }}>
+                                Your password is encrypted and stored securely
+                              </small>
+                            </div>
+
+                            {/* Save Button */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`/api/mailboxes/${mailbox.id}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                      imap_host: editingConfig.imap_host,
+                                      imap_port: editingConfig.imap_port,
+                                      smtp_host: editingConfig.smtp_host,
+                                      smtp_port: editingConfig.smtp_port,
+                                      ...(editingConfig.password && { encrypted_password: editingConfig.password })
+                                    })
+                                  });
+
+                                  if (response.ok) {
+                                    alert("✅ Configuration saved! Testing connection...");
+                                    await load();
+                                    setExpandedMailbox(null);
+                                    
+                                    // Test connection
+                                    const testResponse = await fetch(`/api/mailboxes/${mailbox.id}/test`);
+                                    const testResult = await testResponse.json();
+                                    
+                                    if (testResult.imap === "online" && testResult.smtp === "online") {
+                                      alert("✅ Connection successful! IMAP and SMTP are working.");
+                                    } else {
+                                      alert(`⚠️ Configuration saved but connection failed:\nIMAP: ${testResult.imap}\nSMTP: ${testResult.smtp}`);
+                                    }
+                                  } else {
+                                    const error = await response.json();
+                                    alert("❌ Failed to save: " + (error.error || "Unknown error"));
+                                  }
+                                } catch (err) {
+                                  alert("❌ Error: " + (err instanceof Error ? err.message : "Unknown error"));
+                                }
+                              }}
+                              style={{
+                                padding: "0.75rem",
+                                background: "#10b981",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "0.375rem",
+                                fontSize: "0.875rem",
+                                fontWeight: "600",
+                                cursor: "pointer"
+                              }}
+                            >
+                              💾 Save & Test Connection
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>

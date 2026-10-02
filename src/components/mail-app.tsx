@@ -1430,6 +1430,7 @@ export function MailApp() {
                   <button
                     className="button danger"
                     onClick={() => void remove(draft.id)}
+                    title="Delete your AI-generated reply only. The original email will stay in your inbox."
                   >
                     🗑️ Delete Draft
                   </button>
@@ -1437,7 +1438,7 @@ export function MailApp() {
                     className="button danger"
                     onClick={() => void deleteEmail(draft.emails.id, draft.id)}
                     style={{ background: "#991b1b", border: "2px solid #dc2626", padding: "0.75rem 1.25rem", fontSize: "0.95rem" }}
-                    title="Permanently delete the entire email and draft"
+                    title="⚠️ DANGER: Permanently delete the entire email and all drafts. Cannot be undone!"
                   >
                     ⛔ Delete Email
                   </button>
