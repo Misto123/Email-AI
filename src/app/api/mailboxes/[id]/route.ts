@@ -28,19 +28,29 @@ export async function PATCH(request: Request, { params }: Context) {
     if (body.prompt !== undefined) updates.prompt = body.prompt.trim();
     if (body.reply_language) updates.reply_language = body.reply_language;
     if (body.default_language) updates.default_language = body.default_language;
-    if (body.imap_host) updates.imap_host = body.imap_host.trim();
-    if (body.imap_port) updates.imap_port = body.imap_port;
-    if (body.smtp_host) updates.smtp_host = body.smtp_host.trim();
-    if (body.smtp_port) updates.smtp_port = body.smtp_port;
+    if (body.imap_host !== undefined) updates.imap_host = body.imap_host.trim();
+    if (body.imap_port !== undefined) updates.imap_port = body.imap_port;
+    if (body.smtp_host !== undefined) updates.smtp_host = body.smtp_host.trim();
+    if (body.smtp_port !== undefined) updates.smtp_port = body.smtp_port;
     
-    console.log('[MAILBOX-UPDATE] Updating mailbox:', id, 'with fields:', Object.keys(updates));
+    console.log('[MAILBOX-UPDATE] Updating mailbox:', id);
+    console.log('[MAILBOX-UPDATE] Updates:', updates);
     
-    const { error } = await supabaseAdmin.from("mailboxes").update(updates).eq("id", id);
-    if (error) throw error;
-    return NextResponse.json({ ok: true });
+    const { data, error } = await supabaseAdmin.from("mailboxes").update(updates).eq("id", id).select();
+    
+    if (error) {
+      console.error('[MAILBOX-UPDATE] Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('[MAILBOX-UPDATE] Success:', data);
+    return NextResponse.json({ ok: true, data });
   } catch (error) { 
     console.error('[MAILBOX-UPDATE] Error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to update mailbox" }, { status: 400 }); 
+    return NextResponse.json({ 
+      error: error instanceof Error ? error.message : "Unable to update mailbox",
+      details: error 
+    }, { status: 400 }); 
   }
 }
 
