@@ -308,6 +308,10 @@ export function MailApp() {
       await update(id, { status: "deleted" });
       setDrafts((items) => items.filter((item) => item.id !== id));
       showNotification("Draft deleted (email kept)", "success");
+      
+      // Reload to show the email in pending again
+      console.log('[DELETE-DRAFT] Reloading to show email in pending...');
+      await load();
     } catch {
       showNotification("Unable to delete draft", "error");
     }
@@ -1126,7 +1130,12 @@ export function MailApp() {
                       
                       <div style={{ flex: 1 }}>
                         <div className="draft-meta">
-                          <span>📧 {email.mailboxes.email}</span>
+                          <span>
+                            📧 {email.mailboxes.email}
+                            {email.archived && <span style={{ marginLeft: "0.5rem", color: "#6b7280" }} title="Archived">📁</span>}
+                            {email.is_spam && <span style={{ marginLeft: "0.5rem", color: "#ef4444" }} title="Spam">🚫</span>}
+                            {!email.processed && <span style={{ marginLeft: "0.5rem", color: "#3b82f6" }} title="New/Unprocessed">🆕</span>}
+                          </span>
                           <time>{formatDate(email.received_at)}</time>
                         </div>
                         
@@ -1235,7 +1244,12 @@ export function MailApp() {
               return (
               <article className="draft-card" key={draft.id} style={isHighSpam ? { borderLeft: "4px solid #dc2626", background: "#fef2f2" } : selfSent ? { borderLeft: "4px solid #3b82f6", background: "#eff6ff" } : {}}>
                 <div className="draft-meta">
-                  <span>📧 {draft.emails.mailboxes.email}</span>
+                  <span>
+                    📧 {draft.emails.mailboxes.email}
+                    {draft.emails.archived && <span style={{ marginLeft: "0.5rem", color: "#6b7280" }} title="Archived">📁</span>}
+                    {draft.emails.is_spam && <span style={{ marginLeft: "0.5rem", color: "#ef4444" }} title="Spam">🚫</span>}
+                    {draft.status === "sent" && <span style={{ marginLeft: "0.5rem", color: "#10b981" }} title="Sent">✅</span>}
+                  </span>
                   <time>{formatDate(draft.emails.received_at)}</time>
                 </div>
                 
