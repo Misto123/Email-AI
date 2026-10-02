@@ -314,7 +314,7 @@ IMPORTANT LANGUAGE INSTRUCTIONS:
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ 
-          model: "deepseek-chat",
+          model: "deepseek-flash",
           temperature: 0.3, 
           messages 
         }),
