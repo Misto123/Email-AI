@@ -138,6 +138,23 @@ export function MailApp() {
 
   useEffect(() => {
     void load();
+    
+    // Auto-check emails every hour (client-side)
+    // Vercel Hobby plan only allows daily cron, so we check hourly when page is open
+    const autoCheckInterval = setInterval(async () => {
+      console.log('[AUTO-CHECK] Running hourly email check...');
+      try {
+        const response = await fetch('/api/emails/check-now', { method: 'POST' });
+        if (response.ok) {
+          console.log('[AUTO-CHECK] Email check completed');
+          await load(); // Reload emails
+        }
+      } catch (err) {
+        console.error('[AUTO-CHECK] Failed:', err);
+      }
+    }, 60 * 60 * 1000); // 1 hour in milliseconds
+    
+    return () => clearInterval(autoCheckInterval);
   }, []);
 
   // Search handler
