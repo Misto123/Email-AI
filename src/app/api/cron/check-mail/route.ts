@@ -67,7 +67,15 @@ export async function GET(request: Request) {
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
   const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,smtp_host,smtp_port,imap_host,imap_port");
-  if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
+  if (error) {
+    console.error("[CRON] Failed to load mailboxes:", error);
+    return NextResponse.json({ error: "Unable to load mailboxes", details: error.message }, { status: 500 });
+  }
+  if (!mailboxes || mailboxes.length === 0) {
+    console.log("[CRON] No mailboxes found");
+    return NextResponse.json({ error: "No mailboxes configured" }, { status: 404 });
+  }
+  console.log(`[CRON] Loaded ${mailboxes.length} mailboxes`);
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
     let imported = 0;
