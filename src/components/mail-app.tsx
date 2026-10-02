@@ -629,7 +629,7 @@ export function MailApp() {
             color: "#9ca3af",
             fontWeight: "500"
           }}>
-            v1.0.20
+            v1.0.21
           </span>
         </div>
         <nav>
