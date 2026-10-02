@@ -50,7 +50,7 @@ export function AppHeader({ activePage = "inbox", onCheckNow }: AppHeaderProps) 
           color: "#9ca3af",
           fontWeight: "500"
         }}>
-          v1.0.14
+          v1.0.15
         </span>
       </div>
       <nav>
