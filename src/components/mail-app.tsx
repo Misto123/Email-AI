@@ -604,16 +604,13 @@ export function MailApp() {
             color: "#9ca3af",
             fontWeight: "500"
           }}>
-            v1.0.19
+            v1.0.20
           </span>
         </div>
         <nav>
           <a className="active" href="/drafts">
             Inbox
           </a>
-          <a href="/mailboxes">Mailboxes</a>
-          <a href="/bram-forward">📨 Forward</a>
-          <a href="/settings">Settings</a>
           <a href="/spam">
             Spam {spamCount > 0 && <span style={{ 
               background: "#dc2626", 
@@ -626,7 +623,18 @@ export function MailApp() {
           </a>
           <a href="/archive">Archive</a>
         </nav>
-        <EmailCheckCountdown onCheckNow={checkNow} />
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <EmailCheckCountdown onCheckNow={checkNow} />
+          <a href="/settings" style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            color: "#6b7280",
+            textDecoration: "none",
+            fontSize: "1.25rem"
+          }} title="Settings">
+            ⚙️
+          </a>
+        </div>
       </header>
       
       {/* OpenRouter Credits Warning Banner */}

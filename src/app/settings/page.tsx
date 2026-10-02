@@ -76,6 +76,54 @@ export default function SettingsPage() {
         <p className="eyebrow">Configuration</p>
         <h1>Settings</h1>
 
+        {/* Quick Links */}
+        <div style={{ 
+          display: "flex", 
+          gap: "1rem", 
+          marginBottom: "2rem",
+          padding: "1rem",
+          background: "#f9fafb",
+          borderRadius: "0.5rem",
+          border: "1px solid #e5e7eb"
+        }}>
+          <a href="/mailboxes" style={{ 
+            flex: 1,
+            padding: "1rem",
+            background: "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "0.5rem",
+            textDecoration: "none",
+            color: "#111827",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            fontSize: "1rem",
+            fontWeight: "500",
+            transition: "all 0.2s"
+          }} onMouseOver={(e) => e.currentTarget.style.borderColor = "#3b82f6"} onMouseOut={(e) => e.currentTarget.style.borderColor = "#d1d5db"}>
+            <span style={{ fontSize: "1.5rem" }}>📫</span>
+            Mailboxes
+          </a>
+          <a href="/bram-forward" style={{ 
+            flex: 1,
+            padding: "1rem",
+            background: "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "0.5rem",
+            textDecoration: "none",
+            color: "#111827",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            fontSize: "1rem",
+            fontWeight: "500",
+            transition: "all 0.2s"
+          }} onMouseOver={(e) => e.currentTarget.style.borderColor = "#3b82f6"} onMouseOut={(e) => e.currentTarget.style.borderColor = "#d1d5db"}>
+            <span style={{ fontSize: "1.5rem" }}>📨</span>
+            Forward Rules
+          </a>
+        </div>
+
         {/* AI Model Settings */}
         <div className="settings-card" style={{ marginBottom: "2rem" }}>
           <h2 style={{ marginBottom: "1rem", fontSize: "1.25rem" }}>AI Model</h2>

@@ -8,13 +8,15 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
     
-    // Get email IDs that already have drafts
+    // Get email IDs that have active (non-deleted) drafts
     const { data: draftEmails } = await supabaseAdmin
       .from("drafts")
       .select("email_id")
-      .neq("status", "deleted");
+      .neq("status", "deleted"); // Only exclude emails with active drafts
     
     const draftEmailIds = (draftEmails || []).map(d => d.email_id);
+    
+    console.log('[PENDING] Active draft email IDs:', draftEmailIds.length, 'emails with non-deleted drafts');
     
     // Get all emails that don't have drafts yet, aren't processed, and aren't archived
     let query = supabaseAdmin

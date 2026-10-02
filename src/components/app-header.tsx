@@ -50,21 +50,12 @@ export function AppHeader({ activePage = "inbox", onCheckNow }: AppHeaderProps) 
           color: "#9ca3af",
           fontWeight: "500"
         }}>
-          v1.0.19
+          v1.0.20
         </span>
       </div>
       <nav>
         <a className={activePage === "inbox" ? "active" : ""} href="/drafts">
           Inbox
-        </a>
-        <a className={activePage === "mailboxes" ? "active" : ""} href="/mailboxes">
-          Mailboxes
-        </a>
-        <a className={activePage === "forward" ? "active" : ""} href="/bram-forward">
-          📨 Forward
-        </a>
-        <a className={activePage === "settings" ? "active" : ""} href="/settings">
-          Settings
         </a>
         <a className={activePage === "spam" ? "active" : ""} href="/spam">
           Spam {spamCount > 0 && <span style={{ 
@@ -80,7 +71,18 @@ export function AppHeader({ activePage = "inbox", onCheckNow }: AppHeaderProps) 
           Archive
         </a>
       </nav>
-      <EmailCheckCountdown onCheckNow={onCheckNow || defaultCheckNow} />
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <EmailCheckCountdown onCheckNow={onCheckNow || defaultCheckNow} />
+        <a href="/settings" style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          color: "#6b7280",
+          textDecoration: "none",
+          fontSize: "1.25rem"
+        }} title="Settings">
+          ⚙️
+        </a>
+      </div>
     </header>
   );
 }
