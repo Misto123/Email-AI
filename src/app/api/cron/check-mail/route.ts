@@ -66,7 +66,7 @@ export async function GET(request: Request) {
   const spamThreshold = settings?.spam_threshold || 80;
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,smtp_host,smtp_port,password");
+  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,smtp_host,smtp_port,imap_host,imap_port");
   if (error) return NextResponse.json({ error: "Unable to load mailboxes" }, { status: 500 });
   const results: Array<{ mailbox: string; imported: number; error?: string }> = [];
   for (const mailbox of mailboxes || []) {
@@ -142,7 +142,7 @@ export async function GET(request: Request) {
                       host: mailbox.smtp_host,
                       port: mailbox.smtp_port,
                       secure: mailbox.smtp_port === 465,
-                      auth: { user: mailbox.email, pass: mailbox.password }
+                      auth: { user: mailbox.email, pass: mailbox.encrypted_password }
                     };
                     
                     const nodemailer = await import("nodemailer");
