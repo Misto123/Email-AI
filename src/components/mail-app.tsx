@@ -1134,7 +1134,7 @@ export function MailApp() {
                             📧 {email.mailboxes.email}
                             {email.archived && <span style={{ marginLeft: "0.5rem", color: "#6b7280" }} title="Archived">📁</span>}
                             {email.is_spam && <span style={{ marginLeft: "0.5rem", color: "#ef4444" }} title="Spam">🚫</span>}
-                            {!email.processed && <span style={{ marginLeft: "0.5rem", color: "#3b82f6" }} title="New/Unprocessed">🆕</span>}
+                            {!email.processed && <span style={{ marginLeft: "0.5rem", color: "#3b82f6" }} title="New">🆕</span>}
                           </span>
                           <time>{formatDate(email.received_at)}</time>
                         </div>
@@ -1246,7 +1246,7 @@ export function MailApp() {
                 <div className="draft-meta">
                   <span>
                     📧 {draft.emails.mailboxes.email}
-                    {draft.emails.archived && <span style={{ marginLeft: "0.5rem", color: "#6b7280" }} title="Archived">📁</span>}
+                    {draft.emails.is_archived && <span style={{ marginLeft: "0.5rem", color: "#6b7280" }} title="Archived">📁</span>}
                     {draft.emails.is_spam && <span style={{ marginLeft: "0.5rem", color: "#ef4444" }} title="Spam">🚫</span>}
                     {draft.status === "sent" && <span style={{ marginLeft: "0.5rem", color: "#10b981" }} title="Sent">✅</span>}
                   </span>
