@@ -22,45 +22,40 @@ export async function PATCH(request: Request, { params }: Context) {
     };
     
     console.log('[MAILBOX-UPDATE] Updating mailbox:', id);
-    console.log('[MAILBOX-UPDATE] Request body keys:', Object.keys(body));
+    console.log('[MAILBOX-UPDATE] Fields:', Object.keys(body));
     
-    // Build config object for SQL function
-    const config: Record<string, any> = {};
+    const updates: Record<string, any> = {};
     
-    if (body.imap_host !== undefined) config.imap_host = body.imap_host;
-    if (body.imap_port !== undefined) config.imap_port = body.imap_port;
-    if (body.smtp_host !== undefined) config.smtp_host = body.smtp_host;
-    if (body.smtp_port !== undefined) config.smtp_port = body.smtp_port;
-    if (body.default_language) config.default_language = body.default_language;
-    if (body.reply_language) config.reply_language = body.reply_language;
-    if (typeof body.ai_enabled === "boolean") config.ai_enabled = body.ai_enabled;
-    if (body.prompt !== undefined) config.prompt = body.prompt;
+    if (body.email?.trim()) updates.email = body.email.trim();
+    if (body.password) updates.encrypted_password = encryptMailboxPassword(body.password);
+    if (body.encrypted_password) updates.encrypted_password = encryptMailboxPassword(body.encrypted_password);
+    if (typeof body.ai_enabled === "boolean") updates.ai_enabled = body.ai_enabled;
+    if (body.prompt !== undefined) updates.prompt = body.prompt.trim();
+    if (body.reply_language) updates.reply_language = body.reply_language;
+    if (body.default_language) updates.default_language = body.default_language;
+    if (body.imap_host !== undefined) updates.imap_host = body.imap_host.trim();
+    if (body.imap_port !== undefined) updates.imap_port = body.imap_port;
+    if (body.smtp_host !== undefined) updates.smtp_host = body.smtp_host.trim();
+    if (body.smtp_port !== undefined) updates.smtp_port = body.smtp_port;
     
-    // Handle password encryption
-    if (body.password) {
-      config.encrypted_password = encryptMailboxPassword(body.password);
-    } else if (body.encrypted_password) {
-      config.encrypted_password = encryptMailboxPassword(body.encrypted_password);
-    }
+    console.log('[MAILBOX-UPDATE] Update fields:', Object.keys(updates));
     
-    console.log('[MAILBOX-UPDATE] Config keys:', Object.keys(config));
-    
-    // Use SQL function to bypass PostgREST cache
-    const { data, error } = await supabaseAdmin.rpc('update_mailbox_simple', {
-      mailbox_id: id,
-      config: config
-    });
+    const { data, error } = await supabaseAdmin
+      .from("mailboxes")
+      .update(updates)
+      .eq("id", id)
+      .select();
     
     if (error) {
-      console.error('[MAILBOX-UPDATE] RPC error:', error);
+      console.error('[MAILBOX-UPDATE] Error:', error);
       throw error;
     }
     
-    console.log('[MAILBOX-UPDATE] Success via RPC function');
+    console.log('[MAILBOX-UPDATE] Success');
     return NextResponse.json({ ok: true, data });
     
   } catch (error) { 
-    console.error('[MAILBOX-UPDATE] Error:', error);
+    console.error('[MAILBOX-UPDATE] Exception:', error);
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : "Unable to update mailbox",
       details: error 

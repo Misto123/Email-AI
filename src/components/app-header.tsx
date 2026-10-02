@@ -31,10 +31,16 @@ export function AppHeader({ activePage = "inbox", onCheckNow }: AppHeaderProps) 
   const defaultCheckNow = async () => {
     try {
       const response = await fetch("/api/emails/check-now", { method: "POST" });
-      if (!response.ok) throw new Error("Check failed");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Check failed");
+      }
+      const result = await response.json();
+      console.log('[CHECK-NOW] Success:', result);
       window.location.reload();
     } catch (error) {
-      console.error("Check failed:", error);
+      console.error("[CHECK-NOW] Error:", error);
+      alert(`❌ Unable to check emails:\n\n${error instanceof Error ? error.message : 'Unknown error'}\n\nCheck console for details.`);
       throw error;
     }
   };
