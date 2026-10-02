@@ -10,7 +10,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Check if email exists
     const { data: existing, error: checkError } = await supabaseAdmin
       .from("emails")
-      .select("id, archived")
+      .select("id, is_archived")
       .eq("id", id)
       .single();
     
@@ -19,12 +19,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       throw new Error(`Email not found: ${checkError.message}`);
     }
     
-    console.log("[ARCHIVE] Email found:", existing);
+    console.log("[ARCHIVE] Email found, current is_archived:", existing.is_archived);
     
     // Archive the email
     const { data: updated, error } = await supabaseAdmin
       .from("emails")
-      .update({ archived: true })
+      .update({ is_archived: true })
       .eq("id", id)
       .select()
       .single();

@@ -323,7 +323,21 @@ IMPORTANT LANGUAGE INSTRUCTIONS:
       if (!deepseekResponse.ok) {
         const errorText = await deepseekResponse.text();
         console.error('[AI] DeepSeek fallback failed:', errorText);
-        throw new Error(`Both AI providers failed. DeepSeek error: ${errorText.substring(0, 200)}`);
+        
+        // Parse error message for better user feedback
+        let userMessage = "Both AI providers failed.";
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error?.message?.includes("Insufficient Balance")) {
+            userMessage = "DeepSeek API has insufficient balance. Please add credits to your DeepSeek account or check OpenRouter configuration.";
+          } else if (errorJson.error?.message) {
+            userMessage = `DeepSeek error: ${errorJson.error.message}`;
+          }
+        } catch {
+          userMessage = `Both AI providers failed. DeepSeek error: ${errorText.substring(0, 200)}`;
+        }
+        
+        throw new Error(userMessage);
       }
       
       const deepseekData = (await deepseekResponse.json()) as { choices?: Array<{ message?: { content?: string } }> };

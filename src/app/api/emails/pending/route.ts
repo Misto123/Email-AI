@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     
     const draftEmailIds = (draftEmails || []).map(d => d.email_id);
     
-    // Get all emails that don't have drafts yet and aren't processed
+    // Get all emails that don't have drafts yet, aren't processed, and aren't archived
     let query = supabaseAdmin
       .from("emails")
       .select(`
@@ -29,9 +29,12 @@ export async function GET(request: Request) {
         received_at,
         spam_score,
         is_spam,
+        is_archived,
+        processed,
         mailboxes(email)
       `, { count: 'exact' })
       .eq("processed", false)
+      .eq("is_archived", false)
       .order("received_at", { ascending: false });
     
     // Exclude emails that have drafts

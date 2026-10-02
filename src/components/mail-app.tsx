@@ -493,20 +493,31 @@ export function MailApp() {
         throw new Error(data.error || "Failed to create manual draft");
       }
       
+      const result = await response.json();
+      const draftId = result.draft_id;
+      
       showNotification("✅ Manual draft created!", "success");
       await load();
       
-      // Auto-scroll to drafts
+      // Auto-scroll to the new draft AND focus the textarea
       setTimeout(() => {
-        const allH2 = Array.from(document.querySelectorAll('h2'));
-        const draftsHeading = allH2.find(h => h.textContent?.includes('AI Drafts'));
-        if (draftsHeading) {
-          draftsHeading.scrollIntoView({ behavior: "smooth", block: "start" });
-        } else {
-          const firstDraft = document.querySelector('.draft-card');
-          if (firstDraft) {
-            firstDraft.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
+        const allDrafts = document.querySelectorAll('.draft-card');
+        const draftCards = Array.from(allDrafts);
+        
+        // Find the draft card (last one added)
+        if (draftCards.length > 0) {
+          const lastDraft = draftCards[0]; // Newest draft is first (sorted by updated_at desc)
+          lastDraft.scrollIntoView({ behavior: "smooth", block: "center" });
+          
+          // Focus the textarea inside this draft
+          setTimeout(() => {
+            const textarea = lastDraft.querySelector('textarea') as HTMLTextAreaElement;
+            if (textarea) {
+              textarea.focus();
+              textarea.select(); // Select all text so user can start typing immediately
+              console.log('[MANUAL] Textarea focused and text selected');
+            }
+          }, 300);
         }
       }, 500);
     } catch (err) {
