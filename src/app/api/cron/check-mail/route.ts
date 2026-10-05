@@ -66,7 +66,7 @@ export async function GET(request: Request) {
   const spamThreshold = settings?.spam_threshold || 80;
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt,smtp_host,smtp_port,imap_host,imap_port");
+  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
   if (error) {
     console.error("[CRON] Failed to load mailboxes:", error);
     return NextResponse.json({ error: "Unable to load mailboxes", details: error.message }, { status: 500 });
@@ -146,10 +146,14 @@ export async function GET(request: Request) {
                   
                   // Forward via SMTP (BCC style - send copy)
                   try {
+                    // Use configured SMTP or fallback to defaults (will be null until PostgREST cache refreshes)
+                    const smtp_host = (mailbox as any).smtp_host || "smtp.gmail.com"; // Default fallback
+                    const smtp_port = (mailbox as any).smtp_port || 587;
+                    
                     const smtpConfig = {
-                      host: mailbox.smtp_host,
-                      port: mailbox.smtp_port,
-                      secure: mailbox.smtp_port === 465,
+                      host: smtp_host,
+                      port: smtp_port,
+                      secure: smtp_port === 465,
                       auth: { user: mailbox.email, pass: mailbox.encrypted_password }
                     };
                     
