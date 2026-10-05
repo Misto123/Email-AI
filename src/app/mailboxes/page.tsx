@@ -402,7 +402,8 @@ export default function MailboxesPage() {
                             <button
                               onClick={async () => {
                                 try {
-                                  const response = await fetch(`/api/mailboxes/${mailbox.id}`, {
+                                  // Use direct Postgres endpoint to bypass PostgREST cache
+                                  const response = await fetch(`/api/mailboxes-direct/${mailbox.id}`, {
                                     method: "PATCH",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
