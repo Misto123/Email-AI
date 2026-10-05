@@ -402,8 +402,7 @@ export default function MailboxesPage() {
                             <button
                               onClick={async () => {
                                 try {
-                                  // Use direct Postgres endpoint to bypass PostgREST cache
-                                  const response = await fetch(`/api/mailboxes-direct/${mailbox.id}`, {
+                                  const response = await fetch(`/api/mailboxes/${mailbox.id}`, {
                                     method: "PATCH",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
@@ -411,30 +410,38 @@ export default function MailboxesPage() {
                                       imap_port: editingConfig.imap_port,
                                       smtp_host: editingConfig.smtp_host,
                                       smtp_port: editingConfig.smtp_port,
-                                      ...(editingConfig.password && { encrypted_password: editingConfig.password })
+                                      ...(editingConfig.password && { password: editingConfig.password })
                                     })
                                   });
 
-                                  if (response.ok) {
-                                    alert("✅ Configuration saved! Testing connection...");
-                                    await load();
-                                    setExpandedMailbox(null);
-                                    
-                                    // Test connection
-                                    const testResponse = await fetch(`/api/mailboxes/${mailbox.id}/test`);
-                                    const testResult = await testResponse.json();
-                                    
-                                    if (testResult.imap === "online" && testResult.smtp === "online") {
-                                      alert("✅ Connection successful! IMAP and SMTP are working.");
-                                    } else {
-                                      alert(`⚠️ Configuration saved but connection failed:\nIMAP: ${testResult.imap}\nSMTP: ${testResult.smtp}`);
+                                  if (!response.ok) {
+                                    const errorText = await response.text();
+                                    let errorMsg = "Unknown error";
+                                    try {
+                                      const errorJson = JSON.parse(errorText);
+                                      errorMsg = errorJson.error || errorText;
+                                    } catch {
+                                      errorMsg = errorText || `HTTP ${response.status}`;
                                     }
+                                    alert("❌ Failed to save: " + errorMsg);
+                                    return;
+                                  }
+
+                                  alert("✅ Configuration saved! Testing connection...");
+                                  await load();
+                                  setExpandedMailbox(null);
+                                  
+                                  // Test connection
+                                  const testResponse = await fetch(`/api/mailboxes/${mailbox.id}/test`);
+                                  const testResult = await testResponse.json();
+                                  
+                                  if (testResult.imap === "online" && testResult.smtp === "online") {
+                                    alert("✅ Connection successful! IMAP and SMTP are working.");
                                   } else {
-                                    const error = await response.json();
-                                    alert("❌ Failed to save: " + (error.error || "Unknown error"));
+                                    alert(`⚠️ Configuration saved but connection failed:\nIMAP: ${testResult.imap}\nSMTP: ${testResult.smtp}`);
                                   }
                                 } catch (err) {
-                                  alert("❌ Error: " + (err instanceof Error ? err.message : "Unknown error"));
+                                  alert("❌ Error: " + (err instanceof Error ? err.message : String(err)));
                                 }
                               }}
                               style={{
