@@ -1,19 +1,47 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 1,
-});
+// Construct DATABASE_URL from Supabase URL if not provided
+const getDatabaseUrl = () => {
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+  
+  // Extract project ref from SUPABASE_URL
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
+  if (!match) {
+    throw new Error("Cannot construct DATABASE_URL: SUPABASE_URL not found");
+  }
+  
+  const projectRef = match[1];
+  // Use connection pooler (port 6543) for serverless
+  return `postgresql://postgres.${projectRef}:${process.env.SUPABASE_SERVICE_ROLE_KEY}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
+};
+
+let pool: Pool | null = null;
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: getDatabaseUrl(),
+      max: 1,
+    });
+  }
+  return pool;
+}
 
 interface Context {
   params: Promise<{ id: string }>;
 }
 
 export async function PATCH(request: Request, { params }: Context) {
-  const client = await pool.connect();
+  let client;
   
   try {
+    const dbPool = getPool();
+    client = await dbPool.connect();
+    
     const { id } = await params;
     const body = (await request.json()) as { 
       imap_host?: string;
@@ -68,8 +96,7 @@ export async function PATCH(request: Request, { params }: Context) {
       RETURNING id, email, imap_host, imap_port, smtp_host, smtp_port
     `;
     
-    console.log('[MAILBOX-DIRECT] Query:', query);
-    console.log('[MAILBOX-DIRECT] Values count:', values.length);
+    console.log('[MAILBOX-DIRECT] Executing query...');
     
     const result = await client.query(query, values);
     
@@ -88,6 +115,8 @@ export async function PATCH(request: Request, { params }: Context) {
       details: error 
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
