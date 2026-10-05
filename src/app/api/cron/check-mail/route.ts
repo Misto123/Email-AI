@@ -66,7 +66,8 @@ export async function GET(request: Request) {
   const spamThreshold = settings?.spam_threshold || 80;
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
-  const { data: mailboxes, error } = await supabaseAdmin.from("mailboxes").select("id,email,encrypted_password,ai_enabled,prompt");
+  // Use database function to bypass PostgREST cache
+  const { data: mailboxes, error } = await supabaseAdmin.rpc("get_mailboxes_with_config");
   if (error) {
     console.error("[CRON] Failed to load mailboxes:", error);
     return NextResponse.json({ error: "Unable to load mailboxes", details: error.message }, { status: 500 });
@@ -85,7 +86,13 @@ export async function GET(request: Request) {
     let imapError: string | null = null;
     
     try {
-      const client = createImapClient(mailbox.email, mailbox.encrypted_password);
+      // Use custom IMAP settings if configured, otherwise auto-detect
+      const client = createImapClient(
+        mailbox.email, 
+        mailbox.encrypted_password,
+        (mailbox as any).imap_host,
+        (mailbox as any).imap_port
+      );
       await client.connect();
       imapStatus = "online"; // Connection successful
       
