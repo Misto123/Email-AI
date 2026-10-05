@@ -8,21 +8,32 @@ export async function getMailboxes() {
   let { data, error } = await supabaseAdmin.from("mailboxes").select("id,email,ai_enabled,prompt,created_at,last_imap_check,last_smtp_check,imap_status,smtp_status,last_imap_error,last_smtp_error,website_url,knowledge_base,imap_host,imap_port,smtp_host,smtp_port").order("created_at", { ascending: true });
   
   // If error due to missing columns in cache, try without them
-  if (error && error.code === 'PGRST204') {
-    console.warn('[MAIL-DB] PostgREST cache issue, falling back to old columns');
-    const fallback = await supabaseAdmin.from("mailboxes").select("id,email,ai_enabled,prompt,created_at,last_imap_check,last_smtp_check,imap_status,smtp_status,last_imap_error,last_smtp_error,website_url,knowledge_base").order("created_at", { ascending: true });
-    if (fallback.error) throw fallback.error;
-    // Add null values for missing fields
-    return (fallback.data || []).map(m => ({
-      ...m,
-      imap_host: null,
-      imap_port: null,
-      smtp_host: null,
-      smtp_port: null
-    })) as Mailbox[];
+  if (error) {
+    console.error('[MAIL-DB] Error loading with new columns:', error);
+    // Check if it's a PostgREST cache issue (various error codes/messages)
+    const cacheIssue = 
+      error.code === 'PGRST204' || 
+      error.message?.includes('schema cache') ||
+      error.message?.includes('not found') ||
+      error.message?.includes('column');
+    
+    if (cacheIssue) {
+      console.warn('[MAIL-DB] PostgREST cache issue detected, falling back to old columns');
+      const fallback = await supabaseAdmin.from("mailboxes").select("id,email,ai_enabled,prompt,created_at,last_imap_check,last_smtp_check,imap_status,smtp_status,last_imap_error,last_smtp_error,website_url,knowledge_base").order("created_at", { ascending: true });
+      if (fallback.error) throw fallback.error;
+      // Add null values for missing fields
+      return (fallback.data || []).map(m => ({
+        ...m,
+        imap_host: null,
+        imap_port: null,
+        smtp_host: null,
+        smtp_port: null
+      })) as Mailbox[];
+    }
+    
+    throw error;
   }
   
-  if (error) throw error;
   return (data || []) as Mailbox[];
 }
 
