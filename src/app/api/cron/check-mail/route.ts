@@ -132,6 +132,58 @@ export async function GET(request: Request) {
           
           console.log(`[${mailbox.email}] Saved email ${parsed.messageId} (spam: ${spamScore})`);
           
+          // Check if email is an order
+          const { detectOrder, markAsOrder, markOrderForwarded } = await import("@/lib/order-detection");
+          const isOrder = await detectOrder(
+            mailbox.id,
+            parsed.subject || "",
+            parsed.body || "",
+            sender.email || ""
+          );
+          
+          if (isOrder && saved) {
+            console.log(`[ORDER] Detected order email: ${parsed.subject}`);
+            const orderForwards = await markAsOrder(saved.id);
+            
+            // Forward orders to configured addresses
+            if (orderForwards.length > 0) {
+              const nodemailer = await import("nodemailer");
+              const smtp_host = (mailbox as any).smtp_host || "smtp.gmail.com";
+              const smtp_port = (mailbox as any).smtp_port || 587;
+              
+              const transporter = nodemailer.default.createTransport({
+                host: smtp_host,
+                port: smtp_port,
+                secure: smtp_port === 465,
+                auth: { user: mailbox.email, pass: mailbox.encrypted_password }
+              });
+              
+              for (const forward of orderForwards) {
+                try {
+                  await transporter.sendMail({
+                    from: mailbox.email,
+                    to: forward.forward_to,
+                    subject: `🛍️ [ORDER] ${parsed.subject}`,
+                    html: `
+                      <div style="border-left: 4px solid ${forward.theme_color}; padding: 1rem; background: #f9fafb;">
+                        <h2 style="color: ${forward.theme_color}; margin: 0 0 1rem 0;">🛍️ New Order Detected</h2>
+                        <p><strong>From:</strong> ${parsed.from}</p>
+                        <p><strong>Subject:</strong> ${parsed.subject}</p>
+                        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0;">
+                        ${parsed.body}
+                      </div>
+                    `
+                  });
+                  console.log(`[ORDER] Forwarded to ${forward.forward_to}`);
+                } catch (err) {
+                  console.error(`[ORDER] Failed to forward to ${forward.forward_to}:`, err);
+                }
+              }
+              
+              await markOrderForwarded(saved.id);
+            }
+          }
+          
           // Check forward rules and auto-forward if matches
           try {
             const { data: rules } = await supabaseAdmin
