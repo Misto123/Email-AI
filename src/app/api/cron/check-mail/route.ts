@@ -79,6 +79,8 @@ export async function GET(request: Request) {
   let mailboxes: any[] = [];
   
   try {
+    // TEMPORARY: Only check PurelyMail mailboxes to avoid timeout
+    // TODO: Implement batch processing for all mailboxes
     const result = await client.query(`
       SELECT 
         id, 
@@ -91,10 +93,11 @@ export async function GET(request: Request) {
         smtp_host,
         smtp_port
       FROM mailboxes
+      WHERE email IN ('support@maxvisits.com', 'contact@kaufrank.com')
       ORDER BY email
     `);
     mailboxes = result.rows;
-    console.log(`[CRON] Loaded ${mailboxes.length} mailboxes directly from database`);
+    console.log(`[CRON] Loaded ${mailboxes.length} PurelyMail mailboxes directly from database`);
   } catch (error: any) {
     console.error("[CRON] Failed to load mailboxes:", error);
     return NextResponse.json({ error: "Unable to load mailboxes", details: error.message }, { status: 500 });
