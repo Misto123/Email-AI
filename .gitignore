@@ -49,3 +49,4 @@ next-env.d.ts
 temp/
 audio-alchemy-2/
 .env*.local
+.env.local.backup
