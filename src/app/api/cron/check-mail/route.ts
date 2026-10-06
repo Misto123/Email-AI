@@ -3,9 +3,16 @@ import { createImapClient } from "@/lib/mail";
 import { generateReply } from "@/lib/email-ai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { calculateSpamScore, decodeEmailBody } from "@/lib/spam-detection";
+import { Pool } from "pg";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+// Direct PostgreSQL connection to bypass PostgREST cache
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 5,
+});
 
 function textFromSource(source: Buffer) {
   const raw = source.toString("utf8");
@@ -66,12 +73,35 @@ export async function GET(request: Request) {
   const spamThreshold = settings?.spam_threshold || 80;
   const customKeywords = settings?.spam_keywords?.split("\n").filter((k: string) => k.trim()) || [];
   
-  // Use database function to bypass PostgREST cache
-  const { data: mailboxes, error } = await supabaseAdmin.rpc("get_mailboxes_with_config");
-  if (error) {
+  // Use direct PostgreSQL query to bypass PostgREST cache
+  console.log("[CRON] Loading mailboxes via direct PostgreSQL...");
+  const client = await pool.connect();
+  let mailboxes: any[] = [];
+  
+  try {
+    const result = await client.query(`
+      SELECT 
+        id, 
+        email, 
+        encrypted_password, 
+        ai_enabled, 
+        prompt,
+        imap_host,
+        imap_port,
+        smtp_host,
+        smtp_port
+      FROM mailboxes
+      ORDER BY email
+    `);
+    mailboxes = result.rows;
+    console.log(`[CRON] Loaded ${mailboxes.length} mailboxes directly from database`);
+  } catch (error: any) {
     console.error("[CRON] Failed to load mailboxes:", error);
     return NextResponse.json({ error: "Unable to load mailboxes", details: error.message }, { status: 500 });
+  } finally {
+    client.release();
   }
+  
   if (!mailboxes || mailboxes.length === 0) {
     console.log("[CRON] No mailboxes found");
     return NextResponse.json({ error: "No mailboxes configured" }, { status: 404 });
