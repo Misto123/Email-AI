@@ -47,3 +47,4 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+// Force redeploy to pick up new DATABASE_URL - Tue Oct  6 10:07:07 CEST 2026
