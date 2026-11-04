@@ -770,7 +770,9 @@ export function MailApp() {
                     title={`${mailbox.email}\nIMAP: ${mailbox.imap_status || 'unknown'}\nSMTP: ${mailbox.smtp_status || 'unknown'}${mailbox.last_imap_check ? '\nLast check: ' + new Date(mailbox.last_imap_check).toLocaleString() : ''}${mailbox.first_import_date ? '\nImporting since: ' + new Date(mailbox.first_import_date).toLocaleDateString() : ''}`}
                   >
                     <span>{getStatusIcon()}</span>
-                    <span style={{ fontWeight: "500" }}>{mailbox.email.split('@')[0]}</span>
+                    <span style={{ fontWeight: "500" }}>
+                      {mailbox.email.split('@')[0]}@{mailbox.email.split('@')[1].split('.')[0]}
+                    </span>
                   </a>
                 );
               })}
